@@ -1,0 +1,313 @@
+// e-AGM & QR Ballot System - Database Schema
+// Provider: MS SQL Server with Logical Isolation (company_id + meeting_id)
+
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "sqlserver"
+}
+
+// ============================================================
+// TENANT & EVENT MANAGEMENT
+// ============================================================
+
+model Company {
+  id        String   @id @default(uuid())
+  name      String   @db.NVarChar(255)
+  nameTh    String   @db.NVarChar(255)
+  logoUrl   String?  @db.NVarChar(500)
+  directors String?  @db.NText // JSON array of { nameTh, nameEn, position }
+  address   String?  @db.NVarChar(1000)
+  taxId     String?  @db.NVarChar(20)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  events       Event[]
+  users        User[]
+  shareholders Shareholder[]
+  agendas      Agenda[]
+  registrations Registration[]
+  proxies      Proxy[]
+  ballots      Ballot[]
+  votes        Vote[]
+  auditLogs    AuditLog[]
+
+  @@map("companies")
+}
+
+model Event {
+  id          String   @id @default(uuid())
+  companyId   String
+  company     Company  @relation(fields: [companyId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  name        String   @db.NVarChar(255)
+  type        String   @db.NVarChar(10)
+  date        DateTime
+  venue       String?  @db.NVarChar(500)
+  isActive    Boolean  @default(false)
+  status      String   @default("DRAFT") @db.NVarChar(20)
+  totalShares BigInt   @default(0)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  shareholders  Shareholder[]
+  agendas       Agenda[]
+  registrations Registration[]
+  proxies       Proxy[]
+  ballots       Ballot[]
+  votes         Vote[]
+  voteSnapshots VoteSnapshot[]
+  auditLogs     AuditLog[]
+
+  @@map("events")
+}
+
+// ============================================================
+// USER & AUTHENTICATION
+// ============================================================
+
+model User {
+  id           String   @id @default(uuid())
+  companyId    String?
+  company      Company? @relation(fields: [companyId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  username     String   @unique @db.NVarChar(100)
+  passwordHash String   @db.NVarChar(255)
+  displayName  String   @db.NVarChar(255)
+  role         String   @db.NVarChar(30)
+  isActive     Boolean  @default(true)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  @@map("users")
+}
+
+// ============================================================
+// SHAREHOLDER DATA (per Meeting)
+// ============================================================
+
+model Shareholder {
+  id              String   @id @default(uuid())
+  companyId       String
+  company         Company  @relation(fields: [companyId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  meetingId       String
+  event           Event    @relation(fields: [meetingId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  registrationNo  String   @db.NVarChar(50)
+  titleTh         String?  @db.NVarChar(50)
+  firstNameTh     String   @db.NVarChar(255)
+  lastNameTh      String   @db.NVarChar(255)
+  titleEn         String?  @db.NVarChar(50)
+  firstNameEn     String?  @db.NVarChar(255)
+  lastNameEn      String?  @db.NVarChar(255)
+  idCard          String   @db.NVarChar(255)
+  shares          BigInt
+  isCustodian     Boolean  @default(false)
+  createdAt       DateTime @default(now())
+
+  registrations Registration[]
+  proxies       Proxy[]
+  ballots       Ballot[]
+  votes         Vote[]
+
+  @@unique([meetingId, registrationNo])
+  @@map("shareholders")
+}
+
+// ============================================================
+// REGISTRATION & CHECK-IN
+// ============================================================
+
+model Registration {
+  id              String    @id @default(uuid())
+  companyId       String
+  company         Company   @relation(fields: [companyId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  meetingId       String
+  event           Event     @relation(fields: [meetingId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  shareholderId   String
+  shareholder     Shareholder @relation(fields: [shareholderId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  attendeeType    String    @default("SELF") @db.NVarChar(20)
+  proxyType       String?   @db.NVarChar(10)
+  proxyName       String?   @db.NVarChar(255)
+  checkinAt       DateTime  @default(now())
+  checkoutAt      DateTime?
+  shares          BigInt
+  registeredBy    String    @db.NVarChar(100)
+  createdAt       DateTime  @default(now())
+
+  @@unique([meetingId, shareholderId])
+  @@map("registrations")
+}
+
+// ============================================================
+// PROXY MANAGEMENT
+// ============================================================
+
+model Proxy {
+  id              String   @id @default(uuid())
+  companyId       String
+  company         Company  @relation(fields: [companyId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  meetingId       String
+  event           Event    @relation(fields: [meetingId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  shareholderId   String
+  shareholder     Shareholder @relation(fields: [shareholderId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  proxyType       String   @db.NVarChar(10)
+  proxyName       String   @db.NVarChar(255)
+  proxyIdCard     String?  @db.NVarChar(50)
+  createdAt       DateTime @default(now())
+
+  splitVotes ProxySplitVote[]
+
+  @@map("proxies")
+}
+
+model ProxySplitVote {
+  id          String @id @default(uuid())
+  proxyId     String
+  proxy       Proxy  @relation(fields: [proxyId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  agendaId    String
+  subAgendaId String?
+  voteChoice  String @db.NVarChar(20)
+  shares      BigInt
+
+  @@map("proxy_split_votes")
+}
+
+// ============================================================
+// AGENDA & RESOLUTION
+// ============================================================
+
+model Agenda {
+  id              String   @id @default(uuid())
+  companyId       String
+  company         Company  @relation(fields: [companyId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  meetingId       String
+  event           Event    @relation(fields: [meetingId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  orderNo         Int
+  title           String   @db.NVarChar(500)
+  titleTh         String   @db.NVarChar(500)
+  description     String?  @db.NText
+  resolutionType  String   @db.NVarChar(20)
+  status          String   @default("PENDING") @db.NVarChar(20)
+  vetoShareholderIds String? @db.NText // JSON array of shareholder IDs
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  subAgendas SubAgenda[]
+  ballots    Ballot[]
+  votes      Vote[]
+  snapshot   VoteSnapshot?
+
+  @@map("agendas")
+}
+
+model SubAgenda {
+  id        String @id @default(uuid())
+  agendaId  String
+  agenda    Agenda @relation(fields: [agendaId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  orderNo   Int
+  title     String @db.NVarChar(500)
+  titleTh   String @db.NVarChar(500)
+
+  votes Vote[]
+
+  @@map("sub_agendas")
+}
+
+// ============================================================
+// QR BALLOT
+// ============================================================
+
+model Ballot {
+  id              String   @id @default(uuid())
+  companyId       String
+  company         Company  @relation(fields: [companyId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  meetingId       String
+  event           Event    @relation(fields: [meetingId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  agendaId        String
+  agenda          Agenda   @relation(fields: [agendaId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  shareholderId   String
+  shareholder     Shareholder @relation(fields: [shareholderId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  qrData          String   @db.NVarChar(500)
+  isPrinted       Boolean  @default(false)
+  printedAt       DateTime?
+  createdAt       DateTime @default(now())
+
+  votes Vote[]
+
+  @@unique([meetingId, agendaId, shareholderId])
+  @@map("ballots")
+}
+
+// ============================================================
+// VOTE TALLYING
+// ============================================================
+
+model Vote {
+  id              String   @id @default(uuid())
+  companyId       String
+  company         Company  @relation(fields: [companyId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  meetingId       String
+  event           Event    @relation(fields: [meetingId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  agendaId        String
+  agenda          Agenda   @relation(fields: [agendaId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  subAgendaId     String?
+  subAgenda       SubAgenda? @relation(fields: [subAgendaId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  shareholderId   String
+  shareholder     Shareholder @relation(fields: [shareholderId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  ballotId        String?
+  ballot          Ballot?  @relation(fields: [ballotId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  voteChoice      String   @db.NVarChar(20)
+  shares          BigInt
+  isPreVote       Boolean  @default(false)
+  scannedAt       DateTime @default(now())
+  scannedBy       String?  @db.NVarChar(100)
+
+  @@unique([agendaId, shareholderId, subAgendaId])
+  @@map("votes")
+}
+
+// ============================================================
+// VOTE SNAPSHOT (Frozen quorum at vote close)
+// ============================================================
+
+model VoteSnapshot {
+  id              String   @id @default(uuid())
+  agendaId        String   @unique
+  agenda          Agenda   @relation(fields: [agendaId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  meetingId       String
+  event           Event    @relation(fields: [meetingId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  totalAttendees  Int
+  totalShares     BigInt
+  eligibleShares  BigInt
+  approveShares   BigInt   @default(0)
+  disapproveShares BigInt  @default(0)
+  abstainShares   BigInt   @default(0)
+  voidShares      BigInt   @default(0)
+  result          String?  @db.NVarChar(20)
+  closedAt        DateTime @default(now())
+  snapshotData    String?  @db.NText // JSON breakdown
+
+  @@map("vote_snapshots")
+}
+
+// ============================================================
+// AUDIT LOG
+// ============================================================
+
+model AuditLog {
+  id          String   @id @default(uuid())
+  companyId   String?
+  company     Company? @relation(fields: [companyId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  meetingId   String?
+  event       Event?   @relation(fields: [meetingId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  userId      String?  @db.NVarChar(100)
+  action      String   @db.NVarChar(100)
+  entity      String?  @db.NVarChar(100)
+  entityId    String?  @db.NVarChar(100)
+  details     String?  @db.NText // JSON details
+  ipAddress   String?  @db.NVarChar(50)
+  createdAt   DateTime @default(now())
+
+  @@map("audit_logs")
+}

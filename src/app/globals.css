@@ -1,26 +1,296 @@
+@import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Thai:wght@300;400;500;600;700&family=Inter:wght@300;400;500;600;700;800&display=swap');
 @import "tailwindcss";
 
-:root {
-  --background: #ffffff;
-  --foreground: #171717;
-}
+/* ============================================================
+   e-AGM & QR Ballot System — Design System (Light + Dark)
+   ============================================================ */
 
+/* Static brand colors — never change between themes (inline = hardcoded) */
 @theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+  /* Brand Colors */
+  --color-primary: #6366f1;
+  --color-primary-hover: #4f46e5;
+  --color-primary-light: #e0e7ff;
+  --color-primary-dark: #3730a3;
+
+  --color-secondary: #0ea5e9;
+  --color-secondary-hover: #0284c7;
+
+  --color-accent: #f59e0b;
+  --color-accent-hover: #d97706;
+
+  /* Status Colors */
+  --color-success: #10b981;
+  --color-success-light: #d1fae5;
+  --color-warning: #f59e0b;
+  --color-warning-light: #fef3c7;
+  --color-danger: #ef4444;
+  --color-danger-light: #fee2e2;
+  --color-info: #3b82f6;
+  --color-info-light: #dbeafe;
+
+  /* Vote Colors */
+  --color-approve: #10b981;
+  --color-disapprove: #ef4444;
+  --color-abstain: #6b7280;
+  --color-void: #a855f7;
+
+  /* Fonts */
+  --font-sans: 'IBM Plex Sans Thai', 'Inter', system-ui, -apple-system, sans-serif;
+  --font-mono: 'JetBrains Mono', 'Fira Code', monospace;
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+/* Dynamic theme colors — @theme (no "inline") = CSS custom properties, overridable by :root.dark */
+@theme {
+  --color-bg-primary: #f8fafc;
+  --color-bg-secondary: #ffffff;
+  --color-bg-tertiary: #f1f5f9;
+  --color-bg-card: #ffffff;
+  --color-bg-hover: #e2e8f0;
+
+  --color-text-primary: #0f172a;
+  --color-text-secondary: #475569;
+  --color-text-muted: #94a3b8;
+
+  --color-border: #e2e8f0;
+  --color-border-light: #f1f5f9;
+}
+
+/* ============================================================
+   DARK MODE OVERRIDES
+   ============================================================ */
+
+:root.dark {
+  --color-bg-primary: #0f172a;
+  --color-bg-secondary: #1e293b;
+  --color-bg-tertiary: #334155;
+  --color-bg-card: #1e293b;
+  --color-bg-hover: #334155;
+
+  --color-text-primary: #f1f5f9;
+  --color-text-secondary: #94a3b8;
+  --color-text-muted: #64748b;
+
+  --color-border: #334155;
+  --color-border-light: #1e293b;
+}
+
+/* ============================================================
+   BASE STYLES
+   ============================================================ */
+
+* {
+  scrollbar-width: thin;
+  scrollbar-color: var(--color-bg-tertiary) transparent;
 }
 
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  font-family: var(--font-sans);
+  background: var(--color-bg-primary);
+  color: var(--color-text-primary);
+  min-height: 100vh;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  transition: background-color 0.3s ease, color 0.3s ease;
+}
+
+/* ============================================================
+   UTILITIES
+   ============================================================ */
+
+/* Glass morphism card — Light */
+.glass-card {
+  background: rgba(255, 255, 255, 0.85);
+  backdrop-filter: blur(20px);
+  border: 1px solid rgba(226, 232, 240, 0.8);
+  border-radius: 16px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05), 0 1px 2px rgba(0, 0, 0, 0.03);
+}
+
+.glass-card-light {
+  background: rgba(255, 255, 255, 0.6);
+  backdrop-filter: blur(12px);
+  border: 1px solid rgba(226, 232, 240, 0.6);
+  border-radius: 12px;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.03);
+}
+
+/* Glass morphism card — Dark */
+:root.dark .glass-card {
+  background: rgba(30, 41, 59, 0.7);
+  border: 1px solid rgba(148, 163, 184, 0.1);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
+}
+
+:root.dark .glass-card-light {
+  background: rgba(30, 41, 59, 0.4);
+  border: 1px solid rgba(148, 163, 184, 0.08);
+  box-shadow: none;
+}
+
+/* Gradient backgrounds */
+.gradient-primary {
+  background: linear-gradient(135deg, #6366f1, #8b5cf6, #a855f7);
+}
+
+.gradient-success {
+  background: linear-gradient(135deg, #10b981, #059669);
+}
+
+.gradient-danger {
+  background: linear-gradient(135deg, #ef4444, #dc2626);
+}
+
+.gradient-mesh {
+  background: 
+    radial-gradient(at 40% 20%, rgba(99, 102, 241, 0.08) 0px, transparent 50%),
+    radial-gradient(at 80% 0%, rgba(14, 165, 233, 0.06) 0px, transparent 50%),
+    radial-gradient(at 0% 50%, rgba(168, 85, 247, 0.06) 0px, transparent 50%);
+}
+
+:root.dark .gradient-mesh {
+  background: 
+    radial-gradient(at 40% 20%, rgba(99, 102, 241, 0.15) 0px, transparent 50%),
+    radial-gradient(at 80% 0%, rgba(14, 165, 233, 0.1) 0px, transparent 50%),
+    radial-gradient(at 0% 50%, rgba(168, 85, 247, 0.1) 0px, transparent 50%);
+}
+
+/* Input field (Light default) */
+.input-field {
+  width: 100%;
+  padding: 0.625rem 1rem;
+  background: var(--color-bg-tertiary);
+  border: 1px solid var(--color-border);
+  border-radius: 0.75rem;
+  color: var(--color-text-primary);
+  font-size: 0.875rem;
+  transition: all 0.2s;
+  outline: none;
+}
+
+.input-field:focus {
+  ring: 2px;
+  border-color: var(--color-primary);
+  box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.15);
+}
+
+.input-field::placeholder {
+  color: var(--color-text-muted);
+}
+
+/* Animations */
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes slideInRight {
+  from { opacity: 0; transform: translateX(20px); }
+  to { opacity: 1; transform: translateX(0); }
+}
+
+@keyframes pulse-glow {
+  0%, 100% { box-shadow: 0 0 20px rgba(99, 102, 241, 0.3); }
+  50% { box-shadow: 0 0 40px rgba(99, 102, 241, 0.6); }
+}
+
+@keyframes count-up {
+  from { opacity: 0; transform: scale(0.8); }
+  to { opacity: 1; transform: scale(1); }
+}
+
+.animate-fade-in {
+  animation: fadeIn 0.4s ease-out forwards;
+}
+
+.animate-slide-in {
+  animation: slideInRight 0.3s ease-out forwards;
+}
+
+.animate-pulse-glow {
+  animation: pulse-glow 2s ease-in-out infinite;
+}
+
+.animate-count-up {
+  animation: count-up 0.3s ease-out forwards;
+}
+
+/* Stagger animation delays */
+.stagger-1 { animation-delay: 0.05s; }
+.stagger-2 { animation-delay: 0.1s; }
+.stagger-3 { animation-delay: 0.15s; }
+.stagger-4 { animation-delay: 0.2s; }
+.stagger-5 { animation-delay: 0.25s; }
+
+/* Status badges */
+.badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 12px;
+  border-radius: 9999px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  letter-spacing: 0.025em;
+  text-transform: uppercase;
+}
+
+/* Table styles */
+.table-container {
+  overflow-x: auto;
+  border-radius: 12px;
+  border: 1px solid var(--color-border);
+}
+
+.table-container table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.table-container th {
+  background: var(--color-bg-tertiary);
+  padding: 12px 16px;
+  text-align: left;
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--color-text-secondary);
+}
+
+.table-container td {
+  padding: 12px 16px;
+  border-top: 1px solid var(--color-border);
+  font-size: 0.875rem;
+}
+
+.table-container tr:hover td {
+  background: var(--color-bg-hover);
+}
+
+/* Print styles */
+@media print {
+  body {
+    background: white !important;
+    color: black !important;
+  }
+  .no-print,
+  .print\:hidden,
+  nav,
+  aside,
+  header {
+    display: none !important;
+  }
+  main {
+    margin: 0 !important;
+    padding: 0 !important;
+    width: 100% !important;
+    max-width: none !important;
+  }
+  .glass-card {
+    background: white !important;
+    border: 1px solid #e5e7eb !important;
+    backdrop-filter: none !important;
+    box-shadow: none !important;
+  }
 }

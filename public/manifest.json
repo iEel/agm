@@ -1,0 +1,25 @@
+{
+  "name": "e-AGM — ระบบประชุมผู้ถือหุ้น",
+  "short_name": "e-AGM",
+  "description": "ระบบบริหารจัดการการประชุมผู้ถือหุ้นและลงคะแนนเสียงด้วย QR Code",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#0f172a",
+  "theme_color": "#6366f1",
+  "orientation": "any",
+  "categories": ["business", "productivity"],
+  "icons": [
+    {
+      "src": "/icons/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/icons/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ]
+}
