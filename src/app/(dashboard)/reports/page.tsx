@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { useSession } from '@/lib/session-context';
-import { FileText, Download, Loader2, AlertCircle } from 'lucide-react';
+import { FileText, Download, Loader2, AlertCircle, FileDown } from 'lucide-react';
 
 interface ReportData {
   event: { name: string; type: string; date: string; venue: string };
@@ -58,6 +58,7 @@ export default function ReportsPage() {
   const [loading, setLoading] = useState(false);
   const [reportData, setReportData] = useState<ReportData | null>(null);
   const [error, setError] = useState('');
+  const [pdfLoading, setPdfLoading] = useState(false);
 
   const fetchReport = async () => {
     setLoading(true);
@@ -76,6 +77,29 @@ export default function ReportsPage() {
 
   const handlePrint = () => {
     window.print();
+  };
+
+  const handleDownloadPDF = async () => {
+    if (!reportData) return;
+    setPdfLoading(true);
+    try {
+      const { pdf } = await import('@react-pdf/renderer');
+      const { ReportPDFDocument } = await import('@/components/ReportPDF');
+      const { createElement } = await import('react');
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const blob = await pdf(createElement(ReportPDFDocument, { data: reportData }) as any).toBlob();
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `รายงาน_${reportData.company.nameTh}_${new Date().toISOString().slice(0, 10)}.pdf`;
+      a.click();
+      URL.revokeObjectURL(url);
+    } catch (err) {
+      console.error('PDF generation error:', err);
+      setError('ไม่สามารถสร้าง PDF ได้ — กรุณาลองใหม่');
+    } finally {
+      setPdfLoading(false);
+    }
   };
 
   const handleExportVotes = async () => {
@@ -129,9 +153,15 @@ export default function ReportsPage() {
           <Download className="w-3 h-3" /> Excel ลงทะเบียน
         </button>
         {reportData && (
-          <button onClick={handlePrint} className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-amber-500/15 text-amber-400 text-xs font-medium border border-amber-500/20 hover:bg-amber-500/25 cursor-pointer">
-            <FileText className="w-3 h-3" /> พิมพ์ / PDF
-          </button>
+          <>
+            <button onClick={handleDownloadPDF} disabled={pdfLoading} className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-primary/15 text-primary text-xs font-medium border border-primary/20 hover:bg-primary/25 cursor-pointer disabled:opacity-50">
+              {pdfLoading ? <Loader2 className="w-3 h-3 animate-spin" /> : <FileDown className="w-3 h-3" />}
+              {pdfLoading ? 'กำลังสร้าง PDF...' : 'ดาวน์โหลด PDF'}
+            </button>
+            <button onClick={handlePrint} className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-amber-500/15 text-amber-400 text-xs font-medium border border-amber-500/20 hover:bg-amber-500/25 cursor-pointer">
+              <FileText className="w-3 h-3" /> พิมพ์
+            </button>
+          </>
         )}
       </div>
 
