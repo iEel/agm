@@ -22,6 +22,9 @@ import {
   Play,
   Vote,
   Square,
+  RotateCcw,
+  Bomb,
+  ShieldAlert,
 } from 'lucide-react';
 
 interface Event {
@@ -114,6 +117,11 @@ export default function EventsPage() {
   const [activating, setActivating] = useState<string | null>(null);
   const [changingStatus, setChangingStatus] = useState<string | null>(null);
 
+  // Clear data state
+  const [clearModal, setClearModal] = useState<{ eventId: string; eventName: string; level: 'session' | 'all' } | null>(null);
+  const [clearConfirmText, setClearConfirmText] = useState('');
+  const [clearing, setClearing] = useState(false);
+
   const fetchData = useCallback(async () => {
     try {
       const [eventsRes, companiesRes] = await Promise.all([
@@ -146,7 +154,7 @@ export default function EventsPage() {
       companyId: event.companyId,
       name: event.name,
       type: event.type,
-      date: event.date.slice(0, 10),
+      date: new Date(new Date(event.date).getTime() - new Date(event.date).getTimezoneOffset() * 60000).toISOString().slice(0, 16),
       venue: event.venue || '',
       totalShares: event.totalShares,
     });
@@ -247,6 +255,35 @@ export default function EventsPage() {
     }
   };
 
+  const openClearModal = (event: Event, level: 'session' | 'all') => {
+    setClearModal({ eventId: event.id, eventName: event.name, level });
+    setClearConfirmText('');
+  };
+
+  const handleClear = async () => {
+    if (!clearModal) return;
+    setClearing(true);
+    try {
+      const res = await fetch(`/api/events/${clearModal.eventId}/clear`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ level: clearModal.level }),
+      });
+      const data = await res.json();
+      if (res.ok) {
+        setClearModal(null);
+        fetchData();
+        alert(data.message);
+      } else {
+        alert(data.error || 'ไม่สามารถล้างข้อมูลได้');
+      }
+    } catch {
+      alert('เกิดข้อผิดพลาด');
+    } finally {
+      setClearing(false);
+    }
+  };
+
   const filtered = events.filter(
     (ev) =>
       ev.name.toLowerCase().includes(search.toLowerCase()) ||
@@ -255,11 +292,14 @@ export default function EventsPage() {
   );
 
   const formatDate = (dateStr: string) => {
-    return new Date(dateStr).toLocaleDateString('th-TH', {
+    const d = new Date(dateStr);
+    const datePart = d.toLocaleDateString('th-TH', {
       year: 'numeric',
       month: 'long',
       day: 'numeric',
     });
+    const timePart = d.toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit' });
+    return `${datePart}  เวลา ${timePart} น.`;
   };
 
   const formatShares = (shares: string) => {
@@ -441,6 +481,39 @@ export default function EventsPage() {
                     {event.isActive ? 'Active' : 'Set Active'}
                   </button>
                 </div>
+
+              {/* Danger Zone — only for active events */}
+              {event.isActive && (
+                <div className="mt-3 pt-3 border-t border-border/30">
+                  <p className="text-[10px] font-semibold text-text-muted uppercase tracking-wider mb-2">โซนอันตราย</p>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                    <div className="p-2.5 rounded-xl bg-amber-500/5 border border-amber-500/15">
+                      <button
+                        onClick={() => openClearModal(event, 'session')}
+                        className="flex items-center gap-1.5 text-amber-400 text-xs font-bold cursor-pointer hover:text-amber-300 transition-colors mb-1"
+                      >
+                        <RotateCcw className="w-3.5 h-3.5" />
+                        ล้างข้อมูลรอบประชุม
+                      </button>
+                      <p className="text-[10px] text-text-muted leading-relaxed">
+                        ลบลงทะเบียน, โหวต, บัตร, มอบฉันทะ — เก็บวาระ + ผู้ถือหุ้นไว้ (เหมาะสำหรับเริ่มประชุมใหม่)
+                      </p>
+                    </div>
+                    <div className="p-2.5 rounded-xl bg-danger/5 border border-danger/15">
+                      <button
+                        onClick={() => openClearModal(event, 'all')}
+                        className="flex items-center gap-1.5 text-danger text-xs font-bold cursor-pointer hover:text-red-300 transition-colors mb-1"
+                      >
+                        <Bomb className="w-3.5 h-3.5" />
+                        ล้างทั้งหมด
+                      </button>
+                      <p className="text-[10px] text-text-muted leading-relaxed">
+                        ลบทุกอย่างรวมวาระ + ผู้ถือหุ้น — เหลือแค่ Users + Companies (เหมาะสำหรับตั้งค่าระบบใหม่)
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              )}
               </div>
             </div>
           ))}
@@ -522,10 +595,10 @@ export default function EventsPage() {
 
               <div>
                 <label className="block text-sm font-medium text-text-secondary mb-1.5">
-                  วันที่จัดงาน <span className="text-danger">*</span>
+                  วันเวลาจัดงาน <span className="text-danger">*</span>
                 </label>
                 <input
-                  type="date"
+                  type="datetime-local"
                   value={form.date}
                   onChange={(e) => setForm({ ...form, date: e.target.value })}
                   className="w-full px-4 py-2.5 bg-bg-tertiary border border-border rounded-xl focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary text-text-primary text-sm transition-all"
@@ -581,6 +654,87 @@ export default function EventsPage() {
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+      {/* Clear Data Confirm Modal */}
+      {clearModal && (
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[60] flex items-center justify-center p-4">
+          <div className="glass-card w-full max-w-md animate-fade-in">
+            <div className="p-6 border-b border-border">
+              <div className="flex items-center gap-3 mb-2">
+                <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${clearModal.level === 'all' ? 'bg-danger/15' : 'bg-amber-500/15'}`}>
+                  <ShieldAlert className={`w-5 h-5 ${clearModal.level === 'all' ? 'text-danger' : 'text-amber-400'}`} />
+                </div>
+                <h2 className="text-lg font-bold text-text-primary">
+                  {clearModal.level === 'all' ? 'ล้างข้อมูลทั้งหมด' : 'ล้างข้อมูลรอบประชุม'}
+                </h2>
+              </div>
+              <p className="text-sm text-text-secondary">
+                {clearModal.eventName}
+              </p>
+            </div>
+            <div className="p-6 space-y-4">
+              {clearModal.level === 'session' ? (
+                <div className="p-3 rounded-xl bg-amber-500/10 border border-amber-500/20 text-xs text-amber-300 space-y-1">
+                  <p className="font-bold">ข้อมูลที่จะถูกลบ:</p>
+                  <ul className="list-disc ml-4 space-y-0.5">
+                    <li>การลงทะเบียนทั้งหมด</li>
+                    <li>ผลโหวต + บัตรลงคะแนน + Snapshot</li>
+                    <li>การมอบฉันทะทั้งหมด</li>
+                    <li>Audit Log</li>
+                  </ul>
+                  <p className="mt-2 font-bold text-amber-200">✅ เก็บไว้: วาระ + ข้อมูลผู้ถือหุ้น</p>
+                  <p>สถานะจะ reset เป็น DRAFT</p>
+                </div>
+              ) : (
+                <div className="p-3 rounded-xl bg-danger/10 border border-danger/20 text-xs text-danger space-y-1">
+                  <p className="font-bold">ข้อมูลที่จะถูกลบทั้งหมด:</p>
+                  <ul className="list-disc ml-4 space-y-0.5">
+                    <li>การลงทะเบียน + ผลโหวต + บัตร</li>
+                    <li>การมอบฉันทะ</li>
+                    <li><strong>วาระทั้งหมด + วาระย่อย</strong></li>
+                    <li><strong>ข้อมูลผู้ถือหุ้นทั้งหมด</strong></li>
+                    <li>Audit Log</li>
+                  </ul>
+                  <p className="mt-2 font-bold">✅ เก็บไว้: Users + Companies เท่านั้น</p>
+                </div>
+              )}
+
+              <div>
+                <label className="block text-xs text-text-muted mb-1.5">
+                  พิมพ์ <span className="font-bold text-text-primary">ยืนยัน</span> เพื่อดำเนินการ
+                </label>
+                <input
+                  type="text"
+                  value={clearConfirmText}
+                  onChange={(e) => setClearConfirmText(e.target.value)}
+                  className="w-full px-3 py-2 rounded-xl bg-bg-primary border border-border text-sm text-text-primary focus:outline-none focus:ring-2 focus:ring-danger/50"
+                  placeholder="พิมพ์ ยืนยัน ที่นี่"
+                />
+              </div>
+
+              <div className="flex items-center gap-3">
+                <button
+                  onClick={() => setClearModal(null)}
+                  className="flex-1 py-2.5 rounded-xl bg-bg-tertiary text-text-secondary text-sm font-medium cursor-pointer hover:bg-bg-hover transition-colors"
+                >
+                  ยกเลิก
+                </button>
+                <button
+                  onClick={handleClear}
+                  disabled={clearConfirmText !== 'ยืนยัน' || clearing}
+                  className={`flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl text-white text-sm font-bold cursor-pointer disabled:opacity-30 disabled:cursor-not-allowed transition-all ${
+                    clearModal.level === 'all'
+                      ? 'bg-gradient-to-r from-red-600 to-red-500 shadow-lg shadow-red-500/25'
+                      : 'bg-gradient-to-r from-amber-600 to-amber-500 shadow-lg shadow-amber-500/25'
+                  }`}
+                >
+                  {clearing ? <Loader2 className="w-4 h-4 animate-spin" /> : clearModal.level === 'all' ? <Bomb className="w-4 h-4" /> : <RotateCcw className="w-4 h-4" />}
+                  {clearing ? 'กำลังลบ...' : 'ยืนยันลบข้อมูล'}
+                </button>
+              </div>
+            </div>
           </div>
         </div>
       )}

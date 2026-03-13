@@ -30,7 +30,7 @@ async function handleGet(req: NextRequest, user: AuthUser) {
     orderBy: { scannedAt: 'desc' },
   });
 
-  // Summary
+  // Summary — subtraction method: approve = total registered − (disapprove + abstain + void)
   const summary = {
     approve: { count: 0, shares: BigInt(0) },
     disapprove: { count: 0, shares: BigInt(0) },
@@ -46,6 +46,20 @@ async function handleGet(req: NextRequest, user: AuthUser) {
     }
   }
 
+  // Get total registered shares for this meeting (for subtraction method)
+  const registrations = await prisma.registration.findMany({
+    where: { meetingId: activeEvent.id },
+    include: { shareholder: { select: { shares: true } } },
+  });
+  const totalRegisteredShares = registrations.reduce((sum, r) => sum + r.shareholder.shares, BigInt(0));
+  const totalRegisteredCount = registrations.length;
+
+  // Approve = total registered − non-approve
+  const nonApproveShares = summary.disapprove.shares + summary.abstain.shares + summary.void.shares;
+  const nonApproveCount = summary.disapprove.count + summary.abstain.count + summary.void.count;
+  summary.approve.shares = totalRegisteredShares - nonApproveShares;
+  summary.approve.count = totalRegisteredCount - nonApproveCount;
+
   return NextResponse.json({
     votes,
     summary: {
@@ -53,7 +67,7 @@ async function handleGet(req: NextRequest, user: AuthUser) {
       disapprove: { count: summary.disapprove.count, shares: summary.disapprove.shares.toString() },
       abstain: { count: summary.abstain.count, shares: summary.abstain.shares.toString() },
       void: { count: summary.void.count, shares: summary.void.shares.toString() },
-      totalVoted: votes.length,
+      totalVoted: totalRegisteredCount,
     },
   });
 }

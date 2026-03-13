@@ -66,8 +66,10 @@ export async function GET(req: NextRequest) {
     const totalShares = thisSnapshot ? thisSnapshot.eligibleShares : liveShares;
 
     // Previous agenda's snapshot (for "additional" calculation)
-    let additionalCount = totalCount;
-    let additionalShares = totalShares;
+    // Agenda 1: no previous → additional = 0 (everyone is original attendee)
+    // Agenda 2+: additional = current − previous snapshot
+    let additionalCount = 0;
+    let additionalShares = BigInt(0);
 
     if (agenda.orderNo > 1) {
       const prevAgenda = allAgendas.find(a => a.orderNo === agenda.orderNo - 1);

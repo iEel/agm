@@ -106,4 +106,4 @@ async function handlePost(req: NextRequest, user: AuthUser) {
 }
 
 export const GET = withAuth(handleGet);
-export const POST = withAuth(handlePost, ['SUPER_ADMIN', 'SYSTEM_ADMIN']);
+export const POST = withAuth(handlePost, ['SUPER_ADMIN', 'SYSTEM_ADMIN', 'REGISTRATION_STAFF']);

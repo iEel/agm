@@ -1,7 +1,7 @@
 # 📋 Developer Handoff — e-AGM & QR Ballot System
 
-> **สถานะ**: Phase 1-10 เสร็จสมบูรณ์ ✅ | FR Audit + State Machine + Ballot Print
-> **อัปเดตล่าสุด**: 13 มีนาคม 2569 (v5 — Ballot Print System)
+> **สถานะ**: Phase 1-10 เสร็จสมบูรณ์ ✅ | FR Audit + State Machine + Ballot Print + MC Screen
+> **อัปเดตล่าสุด**: 13 มีนาคม 2569 (v14 — MC Vote Results + Subtraction Fix)
 
 ---
 
@@ -534,13 +534,44 @@ export const GET = withAuth(handler, ['SUPER_ADMIN']);
 
 ### Ballot Print System (Phase 10)
 - [x] **`POST /api/ballots/auto-generate`** — สร้างบัตรทุกวาระอัตโนมัติ per shareholder (ELECTION แยกราย sub-agenda)
-- [x] **`/ballot-print`** page — print-optimized, auto-print on load
+- [x] **`/ballot-print`** page — A4 แนวตั้ง, 6 บัตร/หน้า (2×3 grid), auto-print on load
 - [x] **ใบลงทะเบียน** (Registration Slip) — PDPA consent + ช่องลงชื่อ
 - [x] **บัตรลงคะแนนรายวาระ** — QR Code + Ref Code + ช่องกากบาท + deduction note
 - [x] **บัตรเลือกตั้งกรรมการ** — แยก 1 ใบต่อ 1 ผู้สมัคร (sub-agenda)
 - [x] **Auto-open** ballot print tab after check-in
 - [x] **Reprint button** ในตารางลงทะเบียน
 - [x] **REGISTRATION_STAFF** permission เพิ่มใน ballot API
+- [x] **Veto exclusion** — ข้ามพิมพ์บัตรวาระที่ shareholder ถูกตัดสิทธิ (vetoShareholderIds)
+- [x] **Proxy B/C pre-vote** — ห้ามพิมพ์ QR สำหรับวาระที่มี ProxySplitVote (คีย์ล่วงหน้าแล้ว)
+- [x] **Pre-vote Summary Slip** — ใบสรุปการลงคะแนนล่วงหน้า (Proxy B/C) ตาราง วาระ→ผลโหวต
+- [x] **Proxy A share consolidation** — รวมหุ้นจากหลายผู้มอบ → 1 บัตร/วาระ แสดงหุ้นรวม
+- [x] **Proxy B/C blank agenda** — พิมพ์ QR เฉพาะวาระที่ปล่อยว่าง (ไม่ได้ระบุล่วงหน้า)
+- [x] **SELF/PROXY layout** — แยกหัวบัตร (บัตรลงคะแนนเสียง vs ผู้รับมอบฉันทะ), ข้อมูลผู้โหวต, ช่องลงชื่อ
+- [x] **ใบลงทะเบียนแยก SELF/PROXY** — หัว, ชื่อ, ประเภทมอบฉันทะ, ช่องลงชื่อแยกตามประเภท
+- [x] **Watermark** — เลขวาระขนาดใหญ่จางๆ หลังบัตร (มุมขวาล่าง)
+- [x] **Company logo** — แสดงข้างๆ ชื่อบริษัท (ไม่กินพื้นที่แนวตั้ง) ทั้งบัตรลงคะแนนและใบลงทะเบียน
+- [x] **Merged Proxy → Registration** — รวมมอบฉันทะเข้าหน้าลงทะเบียน (2 ปุ่ม: มาเอง/มอบฉันทะ + Proxy Modal)
+- [x] **REGISTRATION_STAFF permission** — เพิ่มสิทธิ์ POST `/api/proxies` ให้ REGISTRATION_STAFF
+- [x] **Proxy Modal UI** — ปรับ UI หน้ามอบฉันทะ (card selector, search พร้อม icon, selected card)
+- [x] **ใบลงทะเบียน: วันเวลาประชุม** — แสดงชื่อ + วันที่ (พ.ศ.) + เวลา (ดึงจาก Event.date)
+- [x] **ใบลงทะเบียน: มอบฉันทะให้** — แสดง "มอบฉันทะให้ [ชื่อ]" เฉพาะผู้รับมอบฉันทะ
+- [x] **Event datetime** — ฟอร์มสร้างประชุมเปลี่ยนจาก `date` เป็น `datetime-local` (ระบุเวลาได้)
+- [x] **Registration Status Guard** — ลงทะเบียนได้เฉพาะ status `REGISTRATION` หรือ `VOTING` (ไม่ให้ check-in ตอน DRAFT/CLOSED)
+- [x] **Header Company Name** — เปลี่ยน subtitle ทุกหน้าจากชื่อรอบประชุม → ชื่อบริษัท (10 หน้า)
+- [x] **Nav Sections** — จัดกลุ่มเมนู Sidebar เป็น section: ตั้งค่า, ดำเนินการ, หน้าจอ, รายงาน (ทุก role)
+- [x] **MC Screen (`/mc`)** — หน้าจอพิธีกร: Quorum bar, ควบคุมวาระ (เปิด/ปิด/ประกาศผล), Timeline วาระ, Script สำเร็จรูป
+- [x] **Late Arrival Alert** — แจ้งเตือนผู้เข้าร่วมใหม่ระหว่างวาระ + Script ให้พิธีกรอ่าน + ปุ่มรับทราบ
+- [x] **MC Script DB** — เพิ่ม `mcScript` (NText) ใน Agenda model + PATCH API + แก้ไข/บันทึก Script ผ่านหน้าจอ MC (เก็บแยกตามวาระ/Event)
+- [x] **FR9.1 Voting Results** — เพิ่ม % แต่ละช่องโหวต (เป็นตาราง) + โลโก้บริษัท + พื้นที่ลงนาม (ประธานกรรมการ + เลขานุการบริษัท)
+- [x] **FR9.2 Attendance Report** — แยกตาราง "มาด้วยตนเอง" vs "ผู้รับมอบฉันทะ" (จำนวนราย/หุ้น/% แยกแต่ละประเภท)
+- [x] **xlsx import fix** — แก้ dynamic import `xlsx` ที่ทำให้ Excel ลงทะเบียน error 500
+- [x] **Data Clear** — ปุ่มล้างข้อมูล 2 ระดับ (SUPER_ADMIN): "ล้างรอบประชุม" (เก็บวาระ+ผู้ถือหุ้น) / "ล้างทั้งหมด" (เหลือ Users+Companies) + Confirm พิมพ์ "ยืนยัน" + Audit Log
+- [x] **Logo Upload** — เปลี่ยนช่อง URL โลโก้เป็นอัปโหลดไฟล์ (PNG/JPG/WebP/SVG, max 2MB) + preview + ลบได้ — เก็บที่ `public/uploads/`
+- [x] **Camera QR Fix** — แก้ timing กล้องมือถือที่หน้านับคะแนน (`/tallying`): `startCamera()` ย้ายจาก onClick ไป useEffect + เปลี่ยน `console.error` เป็น `console.warn`
+- [x] **MC Vote Results** — หน้า MC แสดงผลคะแนน (เห็นด้วย/ไม่เห็นด้วย/งด/เสีย + %, progress bar, badge อนุมัติ/ไม่อนุมัติ) ตอน CLOSED/ANNOUNCED
+- [x] **Vote Subtraction Fix** — แก้ `/api/votes` และ MC ให้ใช้ `/api/public/vote-results` ตัวเดียวกับหน้าแสดงผล — คำนวณแบบหักลบถูกต้อง (approve = total − non-approve)
+- [x] **MC Agenda Quorum** — หน้า MC แสดง "เข้าร่วมเพิ่มในวาระนี้" + "ผู้ถือหุ้นเข้าร่วมทั้งสิ้น" (ราย + หุ้น) แต่ละวาระ
+- [x] **Additional Quorum Fix** — แก้ logic คำนวณ "เข้าร่วมเพิ่ม" วาระที่ 1 จาก total → **0** (ทุกคนเป็นผู้เข้าร่วมเดิม ไม่ใช่ "เพิ่ม")
 
 ---
 

@@ -6,7 +6,7 @@ import { FileText, Download, Loader2, AlertCircle } from 'lucide-react';
 
 interface ReportData {
   event: { name: string; type: string; date: string; venue: string };
-  company: { name: string; nameTh: string; address: string; taxId: string };
+  company: { name: string; nameTh: string; address: string; taxId: string; logoUrl?: string };
   statistics: {
     totalShareholders: number;
     totalRegistrations: number;
@@ -15,6 +15,10 @@ interface ReportData {
     totalShares: string;
     quorumPercentage: string;
     proxyCount: number;
+    selfCount: number;
+    selfShares: string;
+    proxyAttendeeCount: number;
+    proxyAttendeeShares: string;
   };
   agendas: Array<{
     orderNo: number;
@@ -105,7 +109,7 @@ export default function ReportsPage() {
             </div>
             รายงาน
           </h1>
-          <p className="text-sm text-text-secondary mt-1">{activeEvent.name}</p>
+          <p className="text-sm text-text-secondary mt-1">{activeEvent.companyName}</p>
         </div>
         <div className="flex gap-2">
           <button onClick={fetchReport} disabled={loading} className="flex items-center gap-2 px-4 py-2.5 rounded-xl gradient-primary text-white text-sm font-medium cursor-pointer disabled:opacity-50">
@@ -140,6 +144,9 @@ export default function ReportsPage() {
         <div id="report-content" className="glass-card p-8 print:bg-white print:text-black print:shadow-none">
           {/* Report Header */}
           <div className="text-center mb-8 border-b border-border pb-6 print:border-black">
+            {reportData.company.logoUrl && (
+              <img src={reportData.company.logoUrl} alt="Logo" className="w-16 h-16 object-contain mx-auto mb-3" />
+            )}
             <h2 className="text-xl font-bold text-text-primary print:text-black">{reportData.company.nameTh}</h2>
             <p className="text-sm text-text-secondary print:text-gray-600">{reportData.company.name}</p>
             {reportData.company.address && <p className="text-xs text-text-muted mt-1 print:text-gray-500">{reportData.company.address}</p>}
@@ -155,24 +162,49 @@ export default function ReportsPage() {
             </div>
           </div>
 
-          {/* Statistics */}
+          {/* Statistics — FR9.2: Self vs Proxy breakdown */}
           <div className="mb-8">
-            <h4 className="text-sm font-bold text-text-secondary uppercase tracking-wider mb-4 print:text-black">สถิติการประชุม</h4>
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-              {[
-                { label: 'ผู้ถือหุ้นทั้งหมด', value: reportData.statistics.totalShareholders.toLocaleString('th-TH'), suffix: 'ราย' },
-                { label: 'ลงทะเบียน', value: reportData.statistics.totalRegistrations.toLocaleString('th-TH'), suffix: 'ราย' },
-                { label: 'มอบฉันทะ', value: reportData.statistics.proxyCount.toLocaleString('th-TH'), suffix: 'ราย' },
-                { label: 'องค์ประชุม', value: reportData.statistics.quorumPercentage, suffix: '%' },
-              ].map(({ label, value, suffix }) => (
-                <div key={label} className="p-3 rounded-xl bg-bg-tertiary/50 text-center print:border print:border-gray-300 print:bg-gray-50">
-                  <p className="text-xs text-text-muted print:text-gray-500">{label}</p>
-                  <p className="text-xl font-bold text-text-primary print:text-black">{value}<span className="text-xs font-normal ml-0.5">{suffix}</span></p>
-                </div>
-              ))}
-            </div>
-            <div className="mt-3 text-xs text-text-muted text-center print:text-gray-500">
-              หุ้นที่เข้าร่วม: {formatShares(reportData.statistics.currentShares)} / {formatShares(reportData.statistics.totalShares)} หุ้น
+            <h4 className="text-sm font-bold text-text-secondary uppercase tracking-wider mb-4 print:text-black">สรุปองค์ประชุม (Attendance / Quorum Report)</h4>
+            <table className="w-full text-sm border-collapse print:text-black">
+              <thead>
+                <tr className="bg-bg-tertiary/50 print:bg-gray-100">
+                  <th className="border border-border/50 print:border-gray-300 px-3 py-2 text-left font-semibold">ประเภท</th>
+                  <th className="border border-border/50 print:border-gray-300 px-3 py-2 text-right font-semibold">จำนวน (ราย)</th>
+                  <th className="border border-border/50 print:border-gray-300 px-3 py-2 text-right font-semibold">จำนวนหุ้น</th>
+                  <th className="border border-border/50 print:border-gray-300 px-3 py-2 text-right font-semibold">คิดเป็น %</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td className="border border-border/50 print:border-gray-300 px-3 py-2">ผู้ถือหุ้นมาประชุมด้วยตนเอง</td>
+                  <td className="border border-border/50 print:border-gray-300 px-3 py-2 text-right">{reportData.statistics.selfCount.toLocaleString('th-TH')}</td>
+                  <td className="border border-border/50 print:border-gray-300 px-3 py-2 text-right">{formatShares(reportData.statistics.selfShares)}</td>
+                  <td className="border border-border/50 print:border-gray-300 px-3 py-2 text-right">
+                    {Number(reportData.statistics.totalShares) > 0
+                      ? ((Number(reportData.statistics.selfShares) / Number(reportData.statistics.totalShares)) * 100).toFixed(2)
+                      : '0.00'}%
+                  </td>
+                </tr>
+                <tr>
+                  <td className="border border-border/50 print:border-gray-300 px-3 py-2">ผู้รับมอบฉันทะ</td>
+                  <td className="border border-border/50 print:border-gray-300 px-3 py-2 text-right">{reportData.statistics.proxyAttendeeCount.toLocaleString('th-TH')}</td>
+                  <td className="border border-border/50 print:border-gray-300 px-3 py-2 text-right">{formatShares(reportData.statistics.proxyAttendeeShares)}</td>
+                  <td className="border border-border/50 print:border-gray-300 px-3 py-2 text-right">
+                    {Number(reportData.statistics.totalShares) > 0
+                      ? ((Number(reportData.statistics.proxyAttendeeShares) / Number(reportData.statistics.totalShares)) * 100).toFixed(2)
+                      : '0.00'}%
+                  </td>
+                </tr>
+                <tr className="font-bold bg-bg-tertiary/30 print:bg-gray-50">
+                  <td className="border border-border/50 print:border-gray-300 px-3 py-2">รวมผู้มาประชุมทั้งสิ้น</td>
+                  <td className="border border-border/50 print:border-gray-300 px-3 py-2 text-right">{reportData.statistics.currentAttendees.toLocaleString('th-TH')}</td>
+                  <td className="border border-border/50 print:border-gray-300 px-3 py-2 text-right">{formatShares(reportData.statistics.currentShares)}</td>
+                  <td className="border border-border/50 print:border-gray-300 px-3 py-2 text-right">{reportData.statistics.quorumPercentage}%</td>
+                </tr>
+              </tbody>
+            </table>
+            <div className="mt-2 text-xs text-text-muted print:text-gray-500">
+              หุ้นที่จำหน่ายได้แล้วทั้งหมด: {formatShares(reportData.statistics.totalShares)} หุ้น
             </div>
           </div>
 
@@ -180,7 +212,10 @@ export default function ReportsPage() {
           <div>
             <h4 className="text-sm font-bold text-text-secondary uppercase tracking-wider mb-4 print:text-black">ผลการลงคะแนนเสียง</h4>
             <div className="space-y-4">
-              {reportData.agendas.map((a) => (
+              {reportData.agendas.map((a) => {
+                const eligible = a.snapshot ? BigInt(a.snapshot.eligibleShares) : BigInt(0);
+                const pct = (v: string) => eligible > BigInt(0) ? ((Number(v) / Number(eligible)) * 100).toFixed(2) : '0.00';
+                return (
                 <div key={a.orderNo} className="p-4 rounded-xl bg-bg-tertiary/30 border border-border/50 print:border-gray-300 print:bg-white">
                   <div className="flex items-start justify-between mb-3">
                     <div>
@@ -198,19 +233,29 @@ export default function ReportsPage() {
 
                   {a.snapshot ? (
                     <div>
-                      <div className="grid grid-cols-4 gap-2 mb-3">
-                        {[
-                          { label: 'เห็นด้วย', value: a.snapshot.approveShares, color: 'text-emerald-400 print:text-green-700' },
-                          { label: 'ไม่เห็นด้วย', value: a.snapshot.disapproveShares, color: 'text-red-400 print:text-red-700' },
-                          { label: 'งดออกเสียง', value: a.snapshot.abstainShares, color: 'text-amber-400 print:text-amber-700' },
-                          { label: 'บัตรเสีย', value: a.snapshot.voidShares, color: 'text-gray-400 print:text-gray-700' },
-                        ].map(({ label, value, color }) => (
-                          <div key={label} className="text-center p-2 rounded-lg bg-bg-tertiary/50 print:border print:border-gray-200">
-                            <p className="text-[10px] text-text-muted print:text-gray-500">{label}</p>
-                            <p className={`text-sm font-bold ${color}`}>{formatShares(value)}</p>
-                          </div>
-                        ))}
-                      </div>
+                      <table className="w-full text-xs border-collapse mb-3 print:text-black">
+                        <thead>
+                          <tr className="bg-bg-tertiary/30 print:bg-gray-100">
+                            <th className="border border-border/30 print:border-gray-300 px-2 py-1.5 text-left">คะแนน</th>
+                            <th className="border border-border/30 print:border-gray-300 px-2 py-1.5 text-right">จำนวนหุ้น</th>
+                            <th className="border border-border/30 print:border-gray-300 px-2 py-1.5 text-right">คิดเป็น %</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {[
+                            { label: 'เห็นด้วย', value: a.snapshot.approveShares, color: 'text-emerald-400 print:text-green-700' },
+                            { label: 'ไม่เห็นด้วย', value: a.snapshot.disapproveShares, color: 'text-red-400 print:text-red-700' },
+                            { label: 'งดออกเสียง', value: a.snapshot.abstainShares, color: 'text-amber-400 print:text-amber-700' },
+                            { label: 'บัตรเสีย', value: a.snapshot.voidShares, color: 'text-gray-400 print:text-gray-700' },
+                          ].map(({ label, value, color }) => (
+                            <tr key={label}>
+                              <td className={`border border-border/30 print:border-gray-300 px-2 py-1.5 font-medium ${color}`}>{label}</td>
+                              <td className="border border-border/30 print:border-gray-300 px-2 py-1.5 text-right">{formatShares(value)}</td>
+                              <td className="border border-border/30 print:border-gray-300 px-2 py-1.5 text-right font-bold">{pct(value)}%</td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
                       <div className="flex items-center justify-between text-xs">
                         <span className="text-text-muted print:text-gray-500">
                           ผู้เข้าร่วม: {a.snapshot.totalAttendees} | หุ้นมีสิทธิ: {formatShares(a.snapshot.eligibleShares)}
@@ -224,7 +269,28 @@ export default function ReportsPage() {
                     <p className="text-xs text-text-muted italic print:text-gray-400">ยังไม่มีผลคะแนน</p>
                   )}
                 </div>
-              ))}
+                );
+              })}
+            </div>
+          </div>
+
+          {/* Signature Area — FR9.1 */}
+          <div className="mt-12 pt-6 border-t border-border print:border-gray-300">
+            <div className="grid grid-cols-2 gap-12">
+              <div className="text-center">
+                <div className="h-20" />
+                <div className="border-t border-border print:border-gray-400 mx-8 pt-2">
+                  <p className="text-sm font-semibold text-text-primary print:text-black">ประธานกรรมการ</p>
+                  <p className="text-xs text-text-muted print:text-gray-500">วันที่ ____/____/________</p>
+                </div>
+              </div>
+              <div className="text-center">
+                <div className="h-20" />
+                <div className="border-t border-border print:border-gray-400 mx-8 pt-2">
+                  <p className="text-sm font-semibold text-text-primary print:text-black">เลขานุการบริษัท</p>
+                  <p className="text-xs text-text-muted print:text-gray-500">วันที่ ____/____/________</p>
+                </div>
+              </div>
             </div>
           </div>
 

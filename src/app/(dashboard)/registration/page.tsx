@@ -17,6 +17,9 @@ import {
   RefreshCw,
   Hash,
   Printer,
+  FileSignature,
+  Save,
+  X,
 } from 'lucide-react';
 
 interface Shareholder {
@@ -57,6 +60,12 @@ interface Quorum {
 
 
 
+const PROXY_TYPES = [
+  { value: 'FORM_A', label: 'แบบ ก.', color: 'bg-blue-500/15 text-blue-400', desc: 'ผู้รับมอบตัดสินใจเอง' },
+  { value: 'FORM_B', label: 'แบบ ข.', color: 'bg-emerald-500/15 text-emerald-400', desc: 'ระบุผลโหวตล่วงหน้า' },
+  { value: 'FORM_C', label: 'แบบ ค.', color: 'bg-purple-500/15 text-purple-400', desc: 'Custodian' },
+];
+
 export default function RegistrationPage() {
   const { activeEvent } = useSession();
   const [registrations, setRegistrations] = useState<Registration[]>([]);
@@ -70,6 +79,12 @@ export default function RegistrationPage() {
   const [searching, setSearching] = useState(false);
   const [showSearch, setShowSearch] = useState(false);
   const [checkinMsg, setCheckinMsg] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
+
+  // Proxy modal
+  const [proxyModalShareholder, setProxyModalShareholder] = useState<Shareholder | null>(null);
+  const [proxyForm, setProxyForm] = useState({ proxyType: 'FORM_A', proxyName: '', proxyIdCard: '' });
+  const [proxySaving, setProxySaving] = useState(false);
+  const [proxyError, setProxyError] = useState('');
 
   const fetchRegistrations = useCallback(async () => {
     try {
@@ -115,23 +130,50 @@ export default function RegistrationPage() {
     }
   };
 
-  const handleCheckin = async (shareholder: Shareholder) => {
+  const handleCheckin = async (shareholder: Shareholder, attendeeType: 'SELF' | 'PROXY' = 'SELF', proxyData?: { proxyType: string; proxyName: string; proxyIdCard: string }) => {
     setCheckinMsg(null);
     try {
+      // If PROXY, create proxy record first
+      if (attendeeType === 'PROXY' && proxyData) {
+        const proxyRes = await fetch('/api/proxies', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            shareholderId: shareholder.id,
+            proxyType: proxyData.proxyType,
+            proxyName: proxyData.proxyName,
+            proxyIdCard: proxyData.proxyIdCard || null,
+          }),
+        });
+        if (!proxyRes.ok) {
+          const proxyErr = await proxyRes.json();
+          setCheckinMsg({ type: 'error', text: proxyErr.error || 'สร้างหนังสือมอบฉันทะไม่สำเร็จ' });
+          return;
+        }
+      }
+
+      // Check-in registration
       const res = await fetch('/api/registrations', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ shareholderId: shareholder.id, attendeeType: 'SELF' }),
+        body: JSON.stringify({
+          shareholderId: shareholder.id,
+          attendeeType,
+          proxyType: proxyData?.proxyType?.replace('FORM_', '') || undefined,
+          proxyName: proxyData?.proxyName || undefined,
+        }),
       });
       const data = await res.json();
       if (!res.ok) {
         setCheckinMsg({ type: 'error', text: data.error });
         return;
       }
-      setCheckinMsg({ type: 'success', text: `ลงทะเบียนสำเร็จ — ${shareholder.firstNameTh} ${shareholder.lastNameTh}` });
+      const label = attendeeType === 'SELF' ? 'มาด้วยตนเอง' : `มอบฉันทะ → ${proxyData?.proxyName}`;
+      setCheckinMsg({ type: 'success', text: `ลงทะเบียนสำเร็จ — ${shareholder.firstNameTh} ${shareholder.lastNameTh} (${label})` });
       setShowSearch(false);
       setSearchTerm('');
       setSearchResults([]);
+      setProxyModalShareholder(null);
       fetchRegistrations();
 
       // Open ballot print page in new tab
@@ -141,6 +183,24 @@ export default function RegistrationPage() {
     } catch {
       setCheckinMsg({ type: 'error', text: 'เกิดข้อผิดพลาด' });
     }
+  };
+
+  const openProxyModal = (shareholder: Shareholder) => {
+    setProxyModalShareholder(shareholder);
+    setProxyForm({ proxyType: 'FORM_A', proxyName: '', proxyIdCard: '' });
+    setProxyError('');
+  };
+
+  const handleProxyCheckin = async () => {
+    if (!proxyModalShareholder) return;
+    if (!proxyForm.proxyName.trim()) {
+      setProxyError('กรุณากรอกชื่อผู้รับมอบฉันทะ');
+      return;
+    }
+    setProxySaving(true);
+    setProxyError('');
+    await handleCheckin(proxyModalShareholder, 'PROXY', proxyForm);
+    setProxySaving(false);
   };
 
   const handleCheckout = async (registrationId: string) => {
@@ -195,7 +255,7 @@ export default function RegistrationPage() {
             </div>
             ลงทะเบียนผู้ถือหุ้น
           </h1>
-          <p className="text-sm text-text-secondary mt-1">{activeEvent.name}</p>
+          <p className="text-sm text-text-secondary mt-1">{activeEvent.companyName}</p>
         </div>
         <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-emerald-500/10 border border-emerald-500/20">
           <RefreshCw className="w-3.5 h-3.5 text-emerald-400 animate-spin" style={{ animationDuration: '3s' }} />
@@ -387,13 +447,22 @@ export default function RegistrationPage() {
                       ออกแล้ว
                     </span>
                   ) : (
-                    <button
-                      onClick={() => handleCheckin(sh)}
-                      className="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-gradient-to-r from-green-500 to-emerald-500 text-white text-sm font-bold shadow-lg shadow-green-500/25 hover:shadow-xl hover:shadow-green-500/35 cursor-pointer transition-all duration-200 hover:scale-[1.02] active:scale-[0.98]"
-                    >
-                      <LogIn className="w-4 h-4" />
-                      Check-in
-                    </button>
+                    <div className="flex items-center gap-2">
+                      <button
+                        onClick={() => handleCheckin(sh, 'SELF')}
+                        className="flex items-center gap-1.5 px-4 py-2 rounded-xl bg-gradient-to-r from-green-500 to-emerald-500 text-white text-xs font-bold shadow-lg shadow-green-500/25 hover:shadow-xl cursor-pointer transition-all duration-200 hover:scale-[1.02] active:scale-[0.98]"
+                      >
+                        <LogIn className="w-3.5 h-3.5" />
+                        👤 มาเอง
+                      </button>
+                      <button
+                        onClick={() => openProxyModal(sh)}
+                        className="flex items-center gap-1.5 px-4 py-2 rounded-xl bg-gradient-to-r from-violet-500 to-purple-500 text-white text-xs font-bold shadow-lg shadow-violet-500/25 hover:shadow-xl cursor-pointer transition-all duration-200 hover:scale-[1.02] active:scale-[0.98]"
+                      >
+                        <FileSignature className="w-3.5 h-3.5" />
+                        📋 มอบฉันทะ
+                      </button>
+                    </div>
                   )}
                 </div>
               );
@@ -536,6 +605,107 @@ export default function RegistrationPage() {
           </div>
         )}
       </div>
+
+      {/* ═══════════ Proxy Modal ═══════════ */}
+      {proxyModalShareholder && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+          <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={() => setProxyModalShareholder(null)} />
+          <div className="relative w-full max-w-lg glass-card p-6 animate-fade-in">
+            <div className="flex items-center justify-between mb-5">
+              <h2 className="text-lg font-bold text-text-primary flex items-center gap-2">
+                <FileSignature className="w-5 h-5 text-violet-400" />
+                ลงทะเบียน + มอบฉันทะ
+              </h2>
+              <button onClick={() => setProxyModalShareholder(null)} className="p-2 rounded-lg hover:bg-bg-hover text-text-muted cursor-pointer">
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            {/* Shareholder info */}
+            <div className="mb-5 p-3.5 rounded-xl bg-bg-tertiary/50 border border-border/50">
+              <p className="text-sm font-bold text-text-primary">
+                {proxyModalShareholder.firstNameTh} {proxyModalShareholder.lastNameTh}
+              </p>
+              <div className="flex items-center gap-3 mt-1">
+                <span className="text-xs text-text-muted font-mono">เลขทะเบียน: {proxyModalShareholder.registrationNo}</span>
+                <span className="text-xs text-text-muted">•</span>
+                <span className="text-xs text-primary font-semibold">{formatShares(proxyModalShareholder.shares)} หุ้น</span>
+              </div>
+            </div>
+
+            {proxyError && (
+              <div className="mb-4 p-3 rounded-lg bg-danger/10 border border-danger/20 text-danger text-sm flex items-center gap-2">
+                <AlertCircle className="w-4 h-4" /> {proxyError}
+              </div>
+            )}
+
+            <div className="space-y-4">
+              {/* Proxy Type */}
+              <div>
+                <label className="block text-sm font-medium text-text-secondary mb-2">ประเภทหนังสือมอบฉันทะ *</label>
+                <div className="grid grid-cols-3 gap-2">
+                  {PROXY_TYPES.map((t) => (
+                    <button
+                      key={t.value}
+                      onClick={() => setProxyForm((p) => ({ ...p, proxyType: t.value }))}
+                      className={`p-3 rounded-xl border-2 text-center transition-all cursor-pointer ${
+                        proxyForm.proxyType === t.value
+                          ? 'border-primary bg-primary/10'
+                          : 'border-border/50 hover:border-border'
+                      }`}
+                    >
+                      <p className={`text-sm font-bold ${proxyForm.proxyType === t.value ? 'text-primary' : 'text-text-primary'}`}>{t.label}</p>
+                      <p className="text-[10px] text-text-muted mt-0.5">{t.desc}</p>
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Proxy Name */}
+              <div>
+                <label className="block text-sm font-medium text-text-secondary mb-1.5">ชื่อผู้รับมอบฉันทะ *</label>
+                <input
+                  type="text"
+                  value={proxyForm.proxyName}
+                  onChange={(e) => setProxyForm((p) => ({ ...p, proxyName: e.target.value }))}
+                  className="input-field"
+                  placeholder="ชื่อ-นามสกุล ผู้รับมอบฉันทะ"
+                  autoFocus
+                />
+              </div>
+
+              {/* Proxy ID Card */}
+              <div>
+                <label className="block text-sm font-medium text-text-secondary mb-1.5">เลขบัตรประชาชนผู้รับมอบ</label>
+                <input
+                  type="text"
+                  value={proxyForm.proxyIdCard}
+                  onChange={(e) => setProxyForm((p) => ({ ...p, proxyIdCard: e.target.value }))}
+                  className="input-field"
+                  placeholder="(ไม่บังคับ)"
+                />
+              </div>
+            </div>
+
+            <div className="flex justify-end gap-3 mt-6">
+              <button
+                onClick={() => setProxyModalShareholder(null)}
+                className="px-4 py-2.5 rounded-xl bg-bg-tertiary text-text-secondary text-sm font-medium cursor-pointer hover:bg-bg-hover transition-colors"
+              >
+                ยกเลิก
+              </button>
+              <button
+                onClick={handleProxyCheckin}
+                disabled={proxySaving}
+                className="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-gradient-to-r from-violet-500 to-purple-500 text-white text-sm font-bold shadow-lg shadow-violet-500/25 disabled:opacity-50 cursor-pointer hover:shadow-xl transition-all"
+              >
+                <Save className="w-4 h-4" />
+                {proxySaving ? 'กำลังบันทึก...' : 'ยืนยัน + Check-in'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

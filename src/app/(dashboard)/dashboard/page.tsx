@@ -74,7 +74,7 @@ export default function DashboardPage() {
                   </span>
                 </div>
                 <h2 className="text-lg font-bold text-text-primary">
-                  {activeEvent.name}
+                  {activeEvent.companyName}
                 </h2>
                 <p className="text-sm text-text-secondary">
                   {activeEvent.companyName}

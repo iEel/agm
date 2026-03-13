@@ -256,7 +256,7 @@ export default function AgendaSetupPage() {
             ตั้งค่าวาระประชุม
           </h1>
           <p className="text-sm text-text-secondary mt-1">
-            จัดการวาระสำหรับ {activeEvent.name}
+            จัดการวาระสำหรับ {activeEvent.companyName}
           </p>
         </div>
         <button

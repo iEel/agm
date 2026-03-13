@@ -34,9 +34,9 @@ interface ShareholderOption {
 }
 
 const PROXY_TYPES = [
-  { value: 'FORM_A', label: 'แบบ ก.', color: 'bg-blue-500/15 text-blue-400' },
-  { value: 'FORM_B', label: 'แบบ ข.', color: 'bg-emerald-500/15 text-emerald-400' },
-  { value: 'FORM_C', label: 'แบบ ค.', color: 'bg-purple-500/15 text-purple-400' },
+  { value: 'FORM_A', label: 'แบบ ก.', color: 'bg-blue-500/15 text-blue-400', icon: '🟦', desc: 'ผู้รับมอบตัดสินใจเอง' },
+  { value: 'FORM_B', label: 'แบบ ข.', color: 'bg-emerald-500/15 text-emerald-400', icon: '🟩', desc: 'ระบุผลโหวตล่วงหน้า' },
+  { value: 'FORM_C', label: 'แบบ ค.', color: 'bg-purple-500/15 text-purple-400', icon: '🟣', desc: 'Custodian' },
 ];
 
 export default function ProxyPage() {
@@ -129,7 +129,7 @@ export default function ProxyPage() {
             </div>
             การมอบฉันทะ
           </h1>
-          <p className="text-sm text-text-secondary mt-1">{activeEvent.name}</p>
+          <p className="text-sm text-text-secondary mt-1">{activeEvent.companyName}</p>
         </div>
         <button
           onClick={() => {
@@ -211,8 +211,11 @@ export default function ProxyPage() {
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
           <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={() => setShowModal(false)} />
           <div className="relative w-full max-w-lg glass-card p-6 animate-fade-in">
-            <div className="flex items-center justify-between mb-6">
-              <h2 className="text-lg font-bold text-text-primary">เพิ่มหนังสือมอบฉันทะ</h2>
+            <div className="flex items-center justify-between mb-5">
+              <h2 className="text-lg font-bold text-text-primary flex items-center gap-2">
+                <FileSignature className="w-5 h-5 text-violet-400" />
+                เพิ่มหนังสือมอบฉันทะ
+              </h2>
               <button onClick={() => setShowModal(false)} className="p-2 rounded-lg hover:bg-bg-hover text-text-muted cursor-pointer">
                 <X className="w-5 h-5" />
               </button>
@@ -224,22 +227,26 @@ export default function ProxyPage() {
               </div>
             )}
 
-            <div className="space-y-4">
+            <div className="space-y-5">
               {/* Search Shareholder */}
               <div>
-                <label className="block text-sm font-medium text-text-secondary mb-1.5">ผู้ถือหุ้น *</label>
-                <div className="relative">
-                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-text-muted" />
+                <label className="block text-sm font-medium text-text-secondary mb-2">ผู้ถือหุ้น (ผู้มอบฉันทะ) *</label>
+                <div className="relative group">
+                  <div className="absolute left-3.5 top-1/2 -translate-y-1/2 w-8 h-8 rounded-lg bg-violet-500/10 flex items-center justify-center">
+                    <Search className="w-4 h-4 text-violet-400" />
+                  </div>
                   <input
                     type="text"
                     value={searchTerm}
                     onChange={(e) => searchShareholders(e.target.value)}
-                    className="input-field pl-10"
-                    placeholder="ค้นหาชื่อหรือเลขทะเบียน..."
+                    className="input-field py-3.5 text-sm rounded-2xl border-2 border-border/50 focus:border-violet-400/50 transition-colors"
+                    style={{ paddingLeft: '4rem' }}
+                    placeholder="พิมพ์ชื่อ, เลขทะเบียน หรือเลขบัตรประชาชน..."
+                    autoFocus
                   />
                 </div>
                 {shareholders.length > 0 && (
-                  <div className="mt-2 max-h-32 overflow-y-auto space-y-1">
+                  <div className="mt-2 max-h-36 overflow-y-auto rounded-xl border border-border/50 bg-bg-tertiary/30">
                     {shareholders.map((sh) => (
                       <button
                         key={sh.id}
@@ -248,30 +255,65 @@ export default function ProxyPage() {
                           setSearchTerm(`${sh.firstNameTh} ${sh.lastNameTh}`);
                           setShareholders([]);
                         }}
-                        className={`w-full text-left p-2 rounded-lg hover:bg-bg-hover text-sm cursor-pointer ${
-                          formData.shareholderId === sh.id ? 'bg-primary/10 text-primary' : 'text-text-primary'
+                        className={`w-full text-left p-3 flex items-center justify-between hover:bg-bg-hover/80 transition-colors cursor-pointer border-b border-border/20 last:border-0 ${
+                          formData.shareholderId === sh.id ? 'bg-primary/10' : ''
                         }`}
                       >
-                        {sh.registrationNo} — {sh.firstNameTh} {sh.lastNameTh}
+                        <div className="flex items-center gap-3">
+                          <div className={`w-8 h-8 rounded-lg flex items-center justify-center text-xs font-bold ${
+                            formData.shareholderId === sh.id ? 'bg-primary/20 text-primary' : 'bg-bg-tertiary text-text-muted'
+                          }`}>
+                            {formData.shareholderId === sh.id ? '✓' : '#'}
+                          </div>
+                          <div>
+                            <p className="text-sm font-semibold text-text-primary">{sh.firstNameTh} {sh.lastNameTh}</p>
+                            <p className="text-xs text-text-muted">เลขทะเบียน: {sh.registrationNo}</p>
+                          </div>
+                        </div>
+                        <span className="text-xs text-primary font-semibold">{BigInt(sh.shares).toLocaleString('th-TH')} หุ้น</span>
                       </button>
                     ))}
                   </div>
                 )}
+                {/* Selected shareholder card */}
+                {formData.shareholderId && shareholders.length === 0 && searchTerm && (
+                  <div className="mt-2 p-3 rounded-xl bg-primary/5 border border-primary/20 flex items-center gap-3">
+                    <div className="w-8 h-8 rounded-lg bg-primary/15 flex items-center justify-center">
+                      <span className="text-primary text-sm font-bold">✓</span>
+                    </div>
+                    <div>
+                      <p className="text-sm font-semibold text-text-primary">{searchTerm}</p>
+                      <p className="text-xs text-primary">เลือกแล้ว</p>
+                    </div>
+                  </div>
+                )}
               </div>
 
+              {/* Proxy Type — Card selector */}
               <div>
-                <label className="block text-sm font-medium text-text-secondary mb-1.5">ประเภทหนังสือ *</label>
-                <select
-                  value={formData.proxyType}
-                  onChange={(e) => setFormData((p) => ({ ...p, proxyType: e.target.value }))}
-                  className="input-field"
-                >
+                <label className="block text-sm font-medium text-text-secondary mb-2">ประเภทหนังสือมอบฉันทะ *</label>
+                <div className="grid grid-cols-3 gap-2">
                   {PROXY_TYPES.map((t) => (
-                    <option key={t.value} value={t.value}>{t.label}</option>
+                    <button
+                      key={t.value}
+                      onClick={() => setFormData((p) => ({ ...p, proxyType: t.value }))}
+                      className={`p-3 rounded-xl border-2 text-center transition-all cursor-pointer ${
+                        formData.proxyType === t.value
+                          ? 'border-primary bg-primary/10 shadow-sm shadow-primary/10'
+                          : 'border-border/50 hover:border-border hover:bg-bg-hover/30'
+                      }`}
+                    >
+                      <p className="text-base mb-0.5">{t.icon}</p>
+                      <p className={`text-sm font-bold ${
+                        formData.proxyType === t.value ? 'text-primary' : 'text-text-primary'
+                      }`}>{t.label}</p>
+                      <p className="text-[10px] text-text-muted mt-0.5 leading-tight">{t.desc}</p>
+                    </button>
                   ))}
-                </select>
+                </div>
               </div>
 
+              {/* Proxy Name */}
               <div>
                 <label className="block text-sm font-medium text-text-secondary mb-1.5">ชื่อผู้รับมอบฉันทะ *</label>
                 <input
@@ -279,12 +321,13 @@ export default function ProxyPage() {
                   value={formData.proxyName}
                   onChange={(e) => setFormData((p) => ({ ...p, proxyName: e.target.value }))}
                   className="input-field"
-                  placeholder="ชื่อ-นามสกุล"
+                  placeholder="ชื่อ-นามสกุล ผู้รับมอบฉันทะ"
                 />
               </div>
 
+              {/* Proxy ID Card */}
               <div>
-                <label className="block text-sm font-medium text-text-secondary mb-1.5">เลขบัตรผู้รับมอบ</label>
+                <label className="block text-sm font-medium text-text-secondary mb-1.5">เลขบัตรประชาชนผู้รับมอบ</label>
                 <input
                   type="text"
                   value={formData.proxyIdCard}
@@ -296,10 +339,17 @@ export default function ProxyPage() {
             </div>
 
             <div className="flex justify-end gap-3 mt-6">
-              <button onClick={() => setShowModal(false)} className="px-4 py-2.5 rounded-xl bg-bg-tertiary text-text-secondary text-sm font-medium cursor-pointer">
+              <button
+                onClick={() => setShowModal(false)}
+                className="px-4 py-2.5 rounded-xl bg-bg-tertiary text-text-secondary text-sm font-medium cursor-pointer hover:bg-bg-hover transition-colors"
+              >
                 ยกเลิก
               </button>
-              <button onClick={handleSave} disabled={saving} className="flex items-center gap-2 px-5 py-2.5 rounded-xl gradient-primary text-white text-sm font-medium shadow-lg shadow-primary/25 disabled:opacity-50 cursor-pointer">
+              <button
+                onClick={handleSave}
+                disabled={saving}
+                className="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-gradient-to-r from-violet-500 to-purple-500 text-white text-sm font-bold shadow-lg shadow-violet-500/25 disabled:opacity-50 cursor-pointer hover:shadow-xl transition-all"
+              >
                 <Save className="w-4 h-4" />
                 {saving ? 'กำลังบันทึก...' : 'บันทึก'}
               </button>

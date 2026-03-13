@@ -25,8 +25,9 @@ import {
   Sun,
   Moon,
   PieChart,
+  Mic,
 } from 'lucide-react';
-import { type NavItem, NAV_ITEMS } from '@/types';
+import { type NavItem, type NavSection, NAV_ITEMS } from '@/types';
 import { SessionContext, type SessionUser, type SessionContextType } from '@/lib/session-context';
 import { useTheme } from '@/lib/theme-context';
 export { useSession } from '@/lib/session-context';
@@ -46,6 +47,7 @@ const iconMap: Record<string, React.ComponentType<{ className?: string }>> = {
   Shield,
   FileText,
   PieChart,
+  Mic,
 };
 
 // Session types imported from @/lib/session-context
@@ -105,7 +107,7 @@ export default function DashboardLayout({
 
   if (!user) return null;
 
-  const navItems: NavItem[] = NAV_ITEMS[user.role] || [];
+  const navSections: NavSection[] = NAV_ITEMS[user.role] || [];
 
   return (
     <SessionContext.Provider value={{ user, loading, activeEvent }}>
@@ -153,31 +155,46 @@ export default function DashboardLayout({
 
           {/* Navigation */}
           <nav className="flex-1 overflow-y-auto py-4 px-3 space-y-1">
-            {navItems.map((item) => {
-              const Icon = iconMap[item.icon] || LayoutDashboard;
-              const isActive = pathname === item.href || pathname.startsWith(item.href + '/');
+            {navSections.map((section, sIdx) => (
+              <div key={sIdx}>
+                {/* Section heading */}
+                {section.heading && (
+                  sidebarOpen ? (
+                    <p className={`text-[10px] font-semibold text-text-muted uppercase tracking-wider px-3 ${sIdx > 0 ? 'mt-4' : ''} mb-2`}>
+                      {section.heading}
+                    </p>
+                  ) : (
+                    <div className={`${sIdx > 0 ? 'mt-3 mb-2' : ''} mx-3 border-t border-border/50`} />
+                  )
+                )}
+                {/* Section items */}
+                {section.items.map((item) => {
+                  const Icon = iconMap[item.icon] || LayoutDashboard;
+                  const isActive = pathname === item.href || pathname.startsWith(item.href + '/');
 
-              return (
-                <Link
-                  key={item.href}
-                  href={item.href}
-                  onClick={() => setMobileMenuOpen(false)}
-                  className={`flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all duration-200 group
-                    ${isActive
-                      ? 'bg-primary/15 text-primary shadow-sm'
-                      : 'text-text-secondary hover:bg-bg-hover hover:text-text-primary'
-                    }
-                    ${!sidebarOpen ? 'justify-center' : ''}
-                  `}
-                  title={!sidebarOpen ? item.label : undefined}
-                >
-                  <Icon className={`w-5 h-5 flex-shrink-0 transition-colors ${isActive ? 'text-primary' : 'text-text-muted group-hover:text-text-secondary'}`} />
-                  {sidebarOpen && (
-                    <span className="truncate animate-fade-in">{item.label}</span>
-                  )}
-                </Link>
-              );
-            })}
+                  return (
+                    <Link
+                      key={item.href}
+                      href={item.href}
+                      onClick={() => setMobileMenuOpen(false)}
+                      className={`flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all duration-200 group
+                        ${isActive
+                          ? 'bg-primary/15 text-primary shadow-sm'
+                          : 'text-text-secondary hover:bg-bg-hover hover:text-text-primary'
+                        }
+                        ${!sidebarOpen ? 'justify-center' : ''}
+                      `}
+                      title={!sidebarOpen ? item.label : undefined}
+                    >
+                      <Icon className={`w-5 h-5 flex-shrink-0 transition-colors ${isActive ? 'text-primary' : 'text-text-muted group-hover:text-text-secondary'}`} />
+                      {sidebarOpen && (
+                        <span className="truncate animate-fade-in">{item.label}</span>
+                      )}
+                    </Link>
+                  );
+                })}
+              </div>
+            ))}
           </nav>
 
           {/* User & collapse */}

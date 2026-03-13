@@ -110,7 +110,7 @@ export default function TallyingPage() {
 
       setCameraActive(true);
     } catch (err) {
-      console.error('Camera error:', err);
+      console.warn('Camera not available:', err);
       setLastResult({ type: 'error', text: 'ไม่สามารถเปิดกล้องได้ — กรุณาอนุญาตการเข้าถึงกล้อง' });
     }
   }, []);
@@ -123,10 +123,18 @@ export default function TallyingPage() {
     setCameraActive(false);
   }, []);
 
-  // Cleanup camera on unmount
+  // Auto-start camera when switching to camera mode
   useEffect(() => {
+    if (scanMode === 'camera') {
+      // Small delay to ensure the #qr-reader div is rendered in the DOM
+      const timer = setTimeout(() => { startCamera(); }, 300);
+      return () => clearTimeout(timer);
+    } else {
+      stopCamera();
+    }
+    // Cleanup on unmount
     return () => { stopCamera(); };
-  }, [stopCamera]);
+  }, [scanMode, startCamera, stopCamera]);
 
   const handleVoteByQR = async (voteChoice: string) => {
     if (!qrInput.trim() || !selectedAgenda) return;
@@ -175,7 +183,7 @@ export default function TallyingPage() {
           </div>
           นับคะแนน
         </h1>
-        <p className="text-sm text-text-secondary mt-1">{activeEvent.name}</p>
+        <p className="text-sm text-text-secondary mt-1">{activeEvent.companyName}</p>
         <p className="text-xs text-text-muted mt-0.5">
           ระบบนับแบบหักลบ — เก็บบัตร ไม่เห็นด้วย / งดฯ / เสีย (ทิ้งบัตรเห็นด้วย)
         </p>
@@ -220,7 +228,7 @@ export default function TallyingPage() {
               USB Scanner / กรอก
             </button>
             <button
-              onClick={() => { setScanMode('camera'); startCamera(); }}
+              onClick={() => { setScanMode('camera'); }}
               className={`flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-medium transition-all cursor-pointer ${
                 scanMode === 'camera'
                   ? 'bg-primary/15 text-primary border border-primary/30'

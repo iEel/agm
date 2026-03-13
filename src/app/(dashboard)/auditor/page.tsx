@@ -82,7 +82,7 @@ export default function AuditorPage() {
             </div>
             ผู้ตรวจสอบ (Read-only)
           </h1>
-          <p className="text-sm text-text-secondary mt-1">{activeEvent.name}</p>
+          <p className="text-sm text-text-secondary mt-1">{activeEvent.companyName}</p>
         </div>
         <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-teal-500/10 border border-teal-500/20">
           <Activity className="w-3.5 h-3.5 text-teal-400 animate-pulse" />

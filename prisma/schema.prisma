@@ -189,6 +189,7 @@ model Agenda {
   description     String?  @db.NText
   resolutionType  String   @db.NVarChar(20)
   status          String   @default("PENDING") @db.NVarChar(20)
+  mcScript        String?  @db.NText
   vetoShareholderIds String? @db.NText // JSON array of shareholder IDs
   createdAt       DateTime @default(now())
   updatedAt       DateTime @updatedAt

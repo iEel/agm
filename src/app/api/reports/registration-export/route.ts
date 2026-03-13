@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { withAuth, type AuthUser } from '@/lib/auth';
+import * as XLSX from 'xlsx';
 
 // GET /api/reports/registration-export — Registration log
 async function handleGet(req: NextRequest, user: AuthUser) {
@@ -28,8 +29,6 @@ async function handleGet(req: NextRequest, user: AuthUser) {
     },
     orderBy: { checkinAt: 'asc' },
   });
-
-  const { default: XLSX } = await import('xlsx');
 
   const rows = registrations.map((r, i) => ({
     'ลำดับ': i + 1,

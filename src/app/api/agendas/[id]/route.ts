@@ -50,6 +50,7 @@ async function handlePut(
       description: body.description !== undefined ? body.description : existing.description,
       resolutionType: body.resolutionType ?? existing.resolutionType,
       status: body.status ?? existing.status,
+      mcScript: body.mcScript !== undefined ? body.mcScript : existing.mcScript,
     },
   });
 
@@ -82,6 +83,28 @@ async function handleDelete(
   return NextResponse.json({ success: true });
 }
 
+// PATCH /api/agendas/[id] — Update MC script only
+async function handlePatch(
+  req: NextRequest,
+  user: AuthUser
+) {
+  const id = req.nextUrl.pathname.split('/').pop()!;
+  const { mcScript } = await req.json();
+
+  const existing = await prisma.agenda.findUnique({ where: { id } });
+  if (!existing) {
+    return NextResponse.json({ error: 'ไม่พบวาระ' }, { status: 404 });
+  }
+
+  const updated = await prisma.agenda.update({
+    where: { id },
+    data: { mcScript: mcScript || null },
+  });
+
+  return NextResponse.json(updated);
+}
+
 export const GET = withAuth(handleGet);
 export const PUT = withAuth(handlePut, ['SUPER_ADMIN', 'SYSTEM_ADMIN']);
 export const DELETE = withAuth(handleDelete, ['SUPER_ADMIN', 'SYSTEM_ADMIN']);
+export const PATCH = withAuth(handlePatch, ['SUPER_ADMIN', 'SYSTEM_ADMIN', 'CHAIRMAN']);

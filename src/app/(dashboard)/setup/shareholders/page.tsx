@@ -231,7 +231,7 @@ export default function ShareholderPage() {
             </div>
             ข้อมูลผู้ถือหุ้น
           </h1>
-          <p className="text-sm text-text-secondary mt-1">จัดการข้อมูลผู้ถือหุ้นสำหรับ {activeEvent.name}</p>
+          <p className="text-sm text-text-secondary mt-1">จัดการข้อมูลผู้ถือหุ้นสำหรับ {activeEvent.companyName}</p>
         </div>
         <div className="flex gap-2">
           <button

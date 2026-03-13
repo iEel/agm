@@ -132,7 +132,7 @@ export default function ChairmanPage() {
             </div>
             หน้าจอประธาน
           </h1>
-          <p className="text-sm text-text-secondary mt-1">{activeEvent.name}</p>
+          <p className="text-sm text-text-secondary mt-1">{activeEvent.companyName}</p>
         </div>
         <div className="flex items-center gap-3 flex-wrap">
           <a

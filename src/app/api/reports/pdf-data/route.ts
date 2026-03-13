@@ -44,6 +44,19 @@ async function handleGet(req: NextRequest, user: AuthUser) {
     where: { meetingId: activeEvent.id },
   });
 
+  // Self vs Proxy breakdown (FR9.2)
+  const selfAttendees = await prisma.registration.aggregate({
+    where: { meetingId: activeEvent.id, checkoutAt: null, attendeeType: 'SELF' },
+    _count: true,
+    _sum: { shares: true },
+  });
+
+  const proxyAttendees = await prisma.registration.aggregate({
+    where: { meetingId: activeEvent.id, checkoutAt: null, attendeeType: 'PROXY' },
+    _count: true,
+    _sum: { shares: true },
+  });
+
   return NextResponse.json({
     event: {
       name: activeEvent.name,
@@ -68,6 +81,10 @@ async function handleGet(req: NextRequest, user: AuthUser) {
         ? ((Number(currentAttendees._sum.shares || 0) / Number(activeEvent.totalShares)) * 100).toFixed(2)
         : '0',
       proxyCount,
+      selfCount: selfAttendees._count || 0,
+      selfShares: (selfAttendees._sum.shares || BigInt(0)).toString(),
+      proxyAttendeeCount: proxyAttendees._count || 0,
+      proxyAttendeeShares: (proxyAttendees._sum.shares || BigInt(0)).toString(),
     },
     agendas: agendas.map((a) => ({
       orderNo: a.orderNo,

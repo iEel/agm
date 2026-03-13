@@ -12,6 +12,8 @@ import {
   Save,
   Loader2,
   AlertCircle,
+  Upload,
+  ImageIcon,
 } from 'lucide-react';
 
 interface Company {
@@ -52,6 +54,7 @@ export default function CompaniesPage() {
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
   const [deleteConfirm, setDeleteConfirm] = useState<string | null>(null);
+  const [uploading, setUploading] = useState(false);
 
   const fetchCompanies = useCallback(async () => {
     try {
@@ -114,6 +117,29 @@ export default function CompaniesPage() {
     });
     setError('');
     setShowModal(true);
+  };
+
+  const handleLogoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setUploading(true);
+    setError('');
+    try {
+      const formData = new FormData();
+      formData.append('file', file);
+      const res = await fetch('/api/upload', { method: 'POST', body: formData });
+      const data = await res.json();
+      if (res.ok) {
+        setForm(prev => ({ ...prev, logoUrl: data.url }));
+      } else {
+        setError(data.error || 'อัปโหลดไม่สำเร็จ');
+      }
+    } catch {
+      setError('เกิดข้อผิดพลาดในการอัปโหลด');
+    } finally {
+      setUploading(false);
+      e.target.value = '';
+    }
   };
 
   const handleDelete = async (id: string) => {
@@ -355,15 +381,47 @@ export default function CompaniesPage() {
 
               <div>
                 <label className="block text-sm font-medium text-text-secondary mb-1.5">
-                  URL โลโก้
+                  โลโก้บริษัท
                 </label>
-                <input
-                  type="url"
-                  value={form.logoUrl}
-                  onChange={(e) => setForm({ ...form, logoUrl: e.target.value })}
-                  className="w-full px-4 py-2.5 bg-bg-tertiary border border-border rounded-xl focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary text-text-primary placeholder-text-muted text-sm transition-all"
-                  placeholder="https://example.com/logo.png"
-                />
+                {form.logoUrl ? (
+                  <div className="flex items-center gap-3 p-3 rounded-xl bg-bg-tertiary border border-border">
+                    <img src={form.logoUrl} alt="Logo" className="w-12 h-12 object-contain rounded-lg border border-border/50" />
+                    <div className="flex-1 min-w-0">
+                      <p className="text-xs text-text-primary truncate">{form.logoUrl}</p>
+                      <p className="text-[10px] text-text-muted">อัปโหลดแล้ว</p>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => setForm({ ...form, logoUrl: '' })}
+                      className="p-1.5 rounded-lg hover:bg-danger/10 text-text-muted hover:text-danger cursor-pointer transition-colors"
+                    >
+                      <X className="w-4 h-4" />
+                    </button>
+                  </div>
+                ) : (
+                  <label className="flex flex-col items-center justify-center gap-2 p-4 rounded-xl bg-bg-tertiary border-2 border-dashed border-border hover:border-primary/50 hover:bg-primary/5 cursor-pointer transition-all">
+                    <input
+                      type="file"
+                      accept="image/png,image/jpeg,image/jpg,image/webp,image/svg+xml"
+                      onChange={handleLogoUpload}
+                      className="hidden"
+                    />
+                    {uploading ? (
+                      <>
+                        <Loader2 className="w-6 h-6 text-primary animate-spin" />
+                        <span className="text-xs text-text-muted">กำลังอัปโหลด...</span>
+                      </>
+                    ) : (
+                      <>
+                        <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center">
+                          <Upload className="w-5 h-5 text-primary" />
+                        </div>
+                        <span className="text-xs text-text-secondary font-medium">คลิกเพื่ออัปโหลดโลโก้</span>
+                        <span className="text-[10px] text-text-muted">PNG, JPG, WebP, SVG (ไม่เกิน 2MB)</span>
+                      </>
+                    )}
+                  </label>
+                )}
               </div>
 
               <div className="flex gap-3 pt-2">

@@ -68,6 +68,7 @@ export const ROLE_ACCESS: Record<string, UserRole[]> = {
   '/admin': ['SUPER_ADMIN'],
   '/setup': ['SUPER_ADMIN', 'SYSTEM_ADMIN'],
   '/registration': ['SUPER_ADMIN', 'SYSTEM_ADMIN', 'REGISTRATION_STAFF'],
+  '/mc': ['SUPER_ADMIN', 'SYSTEM_ADMIN', 'CHAIRMAN'],
   '/tallying': ['SUPER_ADMIN', 'SYSTEM_ADMIN', 'TALLYING_STAFF'],
   '/chairman': ['SUPER_ADMIN', 'CHAIRMAN'],
   '/auditor': ['SUPER_ADMIN', 'AUDITOR'],
@@ -80,44 +81,123 @@ export interface NavItem {
   icon: string; // Lucide icon name
 }
 
-export const NAV_ITEMS: Record<UserRole, NavItem[]> = {
+export interface NavSection {
+  heading?: string; // Section heading (optional — null for flat items)
+  items: NavItem[];
+}
+
+export const NAV_ITEMS: Record<UserRole, NavSection[]> = {
   SUPER_ADMIN: [
-    { label: 'แดชบอร์ด', href: '/dashboard', icon: 'LayoutDashboard' },
-    { label: 'จัดการบริษัท', href: '/admin/companies', icon: 'Building2' },
-    { label: 'จัดการงานประชุม', href: '/admin/events', icon: 'Calendar' },
-    { label: 'จัดการผู้ใช้', href: '/admin/users', icon: 'Users' },
-    { label: 'ตั้งค่าวาระ', href: '/setup/agendas', icon: 'ListOrdered' },
-    { label: 'ข้อมูลผู้ถือหุ้น', href: '/setup/shareholders', icon: 'FileSpreadsheet' },
-    { label: 'การมอบฉันทะ', href: '/setup/proxies', icon: 'FileSignature' },
-    { label: 'ลงทะเบียน', href: '/registration', icon: 'UserCheck' },
-    { label: 'สถานะองค์ประชุม', href: '/quorum', icon: 'PieChart' },
-    { label: 'นับคะแนน', href: '/tallying', icon: 'ScanLine' },
-    { label: 'หน้าจอประธาน', href: '/chairman', icon: 'Monitor' },
-    { label: 'ตรวจสอบ', href: '/auditor', icon: 'Shield' },
-    { label: 'รายงาน', href: '/reports', icon: 'FileText' },
+    {
+      items: [
+        { label: 'แดชบอร์ด', href: '/dashboard', icon: 'LayoutDashboard' },
+      ],
+    },
+    {
+      heading: 'ตั้งค่า',
+      items: [
+        { label: 'จัดการบริษัท', href: '/admin/companies', icon: 'Building2' },
+        { label: 'จัดการงานประชุม', href: '/admin/events', icon: 'Calendar' },
+        { label: 'จัดการผู้ใช้', href: '/admin/users', icon: 'Users' },
+        { label: 'ตั้งค่าวาระ', href: '/setup/agendas', icon: 'ListOrdered' },
+        { label: 'ข้อมูลผู้ถือหุ้น', href: '/setup/shareholders', icon: 'FileSpreadsheet' },
+      ],
+    },
+    {
+      heading: 'ดำเนินการ',
+      items: [
+        { label: 'การมอบฉันทะ', href: '/setup/proxies', icon: 'FileSignature' },
+        { label: 'ลงทะเบียน', href: '/registration', icon: 'UserCheck' },
+        { label: 'หน้าจอพิธีกร', href: '/mc', icon: 'Mic' },
+        { label: 'นับคะแนน', href: '/tallying', icon: 'ScanLine' },
+      ],
+    },
+    {
+      heading: 'หน้าจอ',
+      items: [
+        { label: 'จอองค์ประชุม', href: '/quorum', icon: 'PieChart' },
+        { label: 'จอผลลงคะแนน', href: '/chairman', icon: 'Monitor' },
+      ],
+    },
+    {
+      heading: 'รายงาน',
+      items: [
+        { label: 'ตรวจสอบ', href: '/auditor', icon: 'Shield' },
+        { label: 'รายงาน', href: '/reports', icon: 'FileText' },
+      ],
+    },
   ],
   SYSTEM_ADMIN: [
-    { label: 'แดชบอร์ด', href: '/dashboard', icon: 'LayoutDashboard' },
-    { label: 'ตั้งค่าวาระ', href: '/setup/agendas', icon: 'ListOrdered' },
-    { label: 'ข้อมูลผู้ถือหุ้น', href: '/setup/shareholders', icon: 'FileSpreadsheet' },
-    { label: 'การมอบฉันทะ', href: '/setup/proxies', icon: 'FileSignature' },
-    { label: 'ลงทะเบียน', href: '/registration', icon: 'UserCheck' },
-    { label: 'สถานะองค์ประชุม', href: '/quorum', icon: 'PieChart' },
-    { label: 'นับคะแนน', href: '/tallying', icon: 'ScanLine' },
-    { label: 'รายงาน', href: '/reports', icon: 'FileText' },
+    {
+      items: [
+        { label: 'แดชบอร์ด', href: '/dashboard', icon: 'LayoutDashboard' },
+      ],
+    },
+    {
+      heading: 'ตั้งค่า',
+      items: [
+        { label: 'ตั้งค่าวาระ', href: '/setup/agendas', icon: 'ListOrdered' },
+        { label: 'ข้อมูลผู้ถือหุ้น', href: '/setup/shareholders', icon: 'FileSpreadsheet' },
+      ],
+    },
+    {
+      heading: 'ดำเนินการ',
+      items: [
+        { label: 'การมอบฉันทะ', href: '/setup/proxies', icon: 'FileSignature' },
+        { label: 'ลงทะเบียน', href: '/registration', icon: 'UserCheck' },
+        { label: 'หน้าจอพิธีกร', href: '/mc', icon: 'Mic' },
+        { label: 'นับคะแนน', href: '/tallying', icon: 'ScanLine' },
+      ],
+    },
+    {
+      heading: 'หน้าจอ',
+      items: [
+        { label: 'จอองค์ประชุม', href: '/quorum', icon: 'PieChart' },
+      ],
+    },
+    {
+      heading: 'รายงาน',
+      items: [
+        { label: 'รายงาน', href: '/reports', icon: 'FileText' },
+      ],
+    },
   ],
   REGISTRATION_STAFF: [
-    { label: 'ลงทะเบียน', href: '/registration', icon: 'UserCheck' },
+    {
+      items: [
+        { label: 'ลงทะเบียน', href: '/registration', icon: 'UserCheck' },
+      ],
+    },
   ],
   TALLYING_STAFF: [
-    { label: 'นับคะแนน', href: '/tallying', icon: 'ScanLine' },
+    {
+      items: [
+        { label: 'นับคะแนน', href: '/tallying', icon: 'ScanLine' },
+      ],
+    },
   ],
   CHAIRMAN: [
-    { label: 'หน้าจอประธาน', href: '/chairman', icon: 'Monitor' },
-    { label: 'สถานะองค์ประชุม', href: '/quorum', icon: 'PieChart' },
+    {
+      heading: 'หน้าจอ',
+      items: [
+        { label: 'หน้าจอพิธีกร', href: '/mc', icon: 'Mic' },
+        { label: 'จอองค์ประชุม', href: '/quorum', icon: 'PieChart' },
+        { label: 'จอผลลงคะแนน', href: '/chairman', icon: 'Monitor' },
+      ],
+    },
   ],
   AUDITOR: [
-    { label: 'ตรวจสอบ', href: '/auditor', icon: 'Shield' },
-    { label: 'สถานะองค์ประชุม', href: '/quorum', icon: 'PieChart' },
+    {
+      heading: 'หน้าจอ',
+      items: [
+        { label: 'จอองค์ประชุม', href: '/quorum', icon: 'PieChart' },
+      ],
+    },
+    {
+      heading: 'รายงาน',
+      items: [
+        { label: 'ตรวจสอบ', href: '/auditor', icon: 'Shield' },
+      ],
+    },
   ],
 };

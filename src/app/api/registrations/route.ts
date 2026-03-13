@@ -71,6 +71,11 @@ async function handlePost(req: NextRequest, user: AuthUser) {
     return NextResponse.json({ error: 'ไม่มีงานประชุมที่ Active' }, { status: 400 });
   }
 
+  // Guard: only allow registration when event is in REGISTRATION or VOTING status
+  if (!['REGISTRATION', 'VOTING'].includes(activeEvent.status)) {
+    return NextResponse.json({ error: `ไม่สามารถลงทะเบียนได้ — สถานะงานประชุมยังเป็น "${activeEvent.status}" กรุณาเปิดลงทะเบียนก่อน` }, { status: 400 });
+  }
+
   const { shareholderId, attendeeType, proxyType, proxyName } = await req.json();
 
   if (!shareholderId) {
