@@ -1,7 +1,7 @@
 # 📋 Developer Handoff — e-AGM & QR Ballot System
 
 > **สถานะ**: Phase 1-10 เสร็จสมบูรณ์ ✅ | FR Audit + State Machine + Ballot Print + MC Screen
-> **อัปเดตล่าสุด**: 13 มีนาคม 2569 (v15 — PDF Export + MC Enhancements)
+> **อัปเดตล่าสุด**: 13 มีนาคม 2569 (v16 — PDF Export + Audit Log Viewer)
 
 ---
 
@@ -573,6 +573,7 @@ export const GET = withAuth(handler, ['SUPER_ADMIN']);
 - [x] **MC Agenda Quorum** — หน้า MC แสดง "เข้าร่วมเพิ่มในวาระนี้" + "ผู้ถือหุ้นเข้าร่วมทั้งสิ้น" (ราย + หุ้น) แต่ละวาระ
 - [x] **Additional Quorum Fix** — แก้ logic คำนวณ "เข้าร่วมเพิ่ม" วาระที่ 1 จาก total → **0** (ทุกคนเป็นผู้เข้าร่วมเดิม ไม่ใช่ "เพิ่ม")
 - [x] **PDF Export** — ปุ่ม "ดาวน์โหลด PDF" ที่หน้ารายงาน ใช้ `@react-pdf/renderer` + Thai font (Sarabun) สร้าง PDF สวยๆ มี header/logo, ตาราง quorum, ผลโหวตแต่ละวาระ, ช่องลายเซ็น — component: `src/components/ReportPDF.tsx`
+- [x] **Audit Log Viewer** — หน้า `/admin/audit-logs` สำหรับ SUPER_ADMIN: แสดงประวัติกิจกรรมทั้งหมด (icon+สีแยกประเภท), ตัวกรอง (ค้นหา/ประเภท/วันที่), แสดงชื่อผู้ใช้แทน UUID, ซ่อน entity ID — API เพิ่ม filter (action/userId/date/search)
 
 ---
 

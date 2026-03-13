@@ -26,6 +26,7 @@ import {
   Moon,
   PieChart,
   Mic,
+  ScrollText,
 } from 'lucide-react';
 import { type NavItem, type NavSection, NAV_ITEMS } from '@/types';
 import { SessionContext, type SessionUser, type SessionContextType } from '@/lib/session-context';
@@ -48,6 +49,7 @@ const iconMap: Record<string, React.ComponentType<{ className?: string }>> = {
   FileText,
   PieChart,
   Mic,
+  ScrollText,
 };
 
 // Session types imported from @/lib/session-context

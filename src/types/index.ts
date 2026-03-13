@@ -124,6 +124,7 @@ export const NAV_ITEMS: Record<UserRole, NavSection[]> = {
       items: [
         { label: 'ตรวจสอบ', href: '/auditor', icon: 'Shield' },
         { label: 'รายงาน', href: '/reports', icon: 'FileText' },
+        { label: 'ประวัติกิจกรรม', href: '/admin/audit-logs', icon: 'ScrollText' },
       ],
     },
   ],
