@@ -707,6 +707,7 @@ npx prisma migrate dev --name your_migration_name
 - ใบสรุปการลงคะแนนล่วงหน้า: ช่องลงชื่อแสดงชื่อ **ผู้รับมอบฉันทะ** (ไม่ใช่ผู้ถือหุ้น)
 - ผลโหวตล่วงหน้าแสดงถูกต้อง (เห็นด้วย/ไม่เห็นด้วย/งดออกเสียง) แทน "-"
 - เอาชื่องาน (event name) ออกจาก header ใบลงทะเบียน
+- แก้ไขหน้าว่างเปล่าตอนพิมพ์ (ใช้ `page-break-before` แทน `page-break-after`)
 
 ### ⚙️ Agenda Setup
 - Title (English) ไม่บังคับกรอกแล้ว (ทั้ง UI + API + sub-agendas)

@@ -153,10 +153,10 @@ export default function BallotPrintPage() {
         }
         @media print {
           @page { size: A4 portrait; margin: 5mm 6mm; }
-          .no-print-btn { display: none !important; }
-          .print-page { page-break-after: always; }
-          .print-page:last-child { page-break-after: auto; }
-          body { background: white; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+          .no-print-btn { display: none !important; position: absolute; width: 0; height: 0; overflow: hidden; }
+          .print-page { page-break-after: auto; page-break-before: always; min-height: auto !important; }
+          .print-page:first-child { page-break-before: auto; }
+          body { background: white; -webkit-print-color-adjust: exact; print-color-adjust: exact; margin: 0; padding: 0; }
         }
         * { box-sizing: border-box; margin: 0; padding: 0; }
         body { font-family: 'IBM Plex Sans Thai', 'Sarabun', Arial, sans-serif; }
