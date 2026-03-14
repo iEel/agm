@@ -112,7 +112,7 @@ export default function AgendaSetupPage() {
   };
 
   const handleSave = async () => {
-    if (!formData.title || !formData.titleTh || !formData.resolutionType) {
+    if (!formData.titleTh || !formData.resolutionType) {
       setError('กรุณากรอกข้อมูลที่จำเป็น');
       return;
     }
@@ -490,7 +490,7 @@ export default function AgendaSetupPage() {
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-text-secondary mb-1.5">Title (English) *</label>
+                <label className="block text-sm font-medium text-text-secondary mb-1.5">Title (English)</label>
                 <input
                   type="text"
                   value={formData.title}

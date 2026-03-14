@@ -231,7 +231,6 @@ export default function BallotPrintPage() {
               )}
               <span className="company">{data.company.nameTh}</span>
             </div>
-            <p className="event">{data.event.name}</p>
             {data.attendeeType === 'SELF' ? (
               <>
                 <h2>ใบลงทะเบียน</h2>

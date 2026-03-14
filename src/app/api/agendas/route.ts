@@ -45,9 +45,9 @@ async function handlePost(req: NextRequest, user: AuthUser) {
   const body = await req.json();
   const { orderNo, title, titleTh, description, resolutionType } = body;
 
-  if (!title || !titleTh || !resolutionType) {
+  if (!titleTh || !resolutionType) {
     return NextResponse.json(
-      { error: 'กรุณากรอกข้อมูลที่จำเป็น (title, titleTh, resolutionType)' },
+      { error: 'กรุณากรอกข้อมูลที่จำเป็น (titleTh, resolutionType)' },
       { status: 400 }
     );
   }
