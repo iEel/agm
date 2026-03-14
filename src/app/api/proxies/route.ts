@@ -25,7 +25,14 @@ async function handleGet(req: NextRequest, user: AuthUser) {
     orderBy: { createdAt: 'desc' },
   });
 
-  return NextResponse.json({ proxies });
+  // Convert BigInt to string for JSON serialization
+  const serialized = proxies.map(p => ({
+    ...p,
+    shareholder: { ...p.shareholder, shares: p.shareholder.shares.toString() },
+    splitVotes: p.splitVotes.map(sv => ({ ...sv, shares: sv.shares.toString() })),
+  }));
+
+  return NextResponse.json({ proxies: serialized });
 }
 
 // POST /api/proxies — Create proxy
@@ -101,8 +108,13 @@ async function handlePost(req: NextRequest, user: AuthUser) {
     where: { id: proxy.id },
     include: { splitVotes: true },
   });
+  // Convert BigInt to string for JSON serialization
+  const serialized = created ? {
+    ...created,
+    splitVotes: created.splitVotes.map(sv => ({ ...sv, shares: sv.shares.toString() })),
+  } : created;
 
-  return NextResponse.json(created, { status: 201 });
+  return NextResponse.json(serialized, { status: 201 });
 }
 
 export const GET = withAuth(handleGet);

@@ -91,7 +91,7 @@ const STATUS_FLOW: Record<string, { next: string; label: string; confirm: string
   REGISTRATION: {
     next: 'VOTING',
     label: 'เริ่มลงคะแนน',
-    confirm: 'ยืนยันเริ่มลงคะแนนเสียง? (จะปิดรับลงทะเบียนใหม่)',
+    confirm: 'ยืนยันเริ่มลงคะแนนเสียง? (ผู้ถือหุ้นยังสามารถลงทะเบียนเพิ่มได้ระหว่างประชุม)',
     color: 'bg-warning/15 text-warning border-warning/30 hover:bg-warning/25',
     icon: Vote,
   },
@@ -676,7 +676,7 @@ export default function EventsPage() {
             </div>
             <div className="p-6 space-y-4">
               {clearModal.level === 'session' ? (
-                <div className="p-3 rounded-xl bg-amber-500/10 border border-amber-500/20 text-xs text-amber-300 space-y-1">
+                <div className="p-3 rounded-xl bg-amber-500/10 border border-amber-500/20 text-xs text-amber-900 dark:text-amber-200 space-y-1">
                   <p className="font-bold">ข้อมูลที่จะถูกลบ:</p>
                   <ul className="list-disc ml-4 space-y-0.5">
                     <li>การลงทะเบียนทั้งหมด</li>
@@ -684,11 +684,11 @@ export default function EventsPage() {
                     <li>การมอบฉันทะทั้งหมด</li>
                     <li>Audit Log</li>
                   </ul>
-                  <p className="mt-2 font-bold text-amber-200">✅ เก็บไว้: วาระ + ข้อมูลผู้ถือหุ้น</p>
+                  <p className="mt-2 font-bold text-emerald-700 dark:text-emerald-300">✅ เก็บไว้: วาระ + ข้อมูลผู้ถือหุ้น</p>
                   <p>สถานะจะ reset เป็น DRAFT</p>
                 </div>
               ) : (
-                <div className="p-3 rounded-xl bg-danger/10 border border-danger/20 text-xs text-danger space-y-1">
+                <div className="p-3 rounded-xl bg-danger/10 border border-danger/20 text-xs text-red-800 dark:text-red-200 space-y-1">
                   <p className="font-bold">ข้อมูลที่จะถูกลบทั้งหมด:</p>
                   <ul className="list-disc ml-4 space-y-0.5">
                     <li>การลงทะเบียน + ผลโหวต + บัตร</li>
@@ -697,7 +697,7 @@ export default function EventsPage() {
                     <li><strong>ข้อมูลผู้ถือหุ้นทั้งหมด</strong></li>
                     <li>Audit Log</li>
                   </ul>
-                  <p className="mt-2 font-bold">✅ เก็บไว้: Users + Companies เท่านั้น</p>
+                  <p className="mt-2 font-bold text-emerald-700 dark:text-emerald-300">✅ เก็บไว้: Users + Companies เท่านั้น</p>
                 </div>
               )}
 

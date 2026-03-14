@@ -85,6 +85,7 @@ export default function RegistrationPage() {
   const [proxyForm, setProxyForm] = useState({ proxyType: 'FORM_A', proxyName: '', proxyIdCard: '' });
   const [proxySaving, setProxySaving] = useState(false);
   const [proxyError, setProxyError] = useState('');
+  const [proxyPreConfigured, setProxyPreConfigured] = useState(false);
 
   const fetchRegistrations = useCallback(async () => {
     try {
@@ -133,8 +134,8 @@ export default function RegistrationPage() {
   const handleCheckin = async (shareholder: Shareholder, attendeeType: 'SELF' | 'PROXY' = 'SELF', proxyData?: { proxyType: string; proxyName: string; proxyIdCard: string }) => {
     setCheckinMsg(null);
     try {
-      // If PROXY, create proxy record first
-      if (attendeeType === 'PROXY' && proxyData) {
+      // If PROXY and no pre-configured proxy, create proxy record first
+      if (attendeeType === 'PROXY' && proxyData && !proxyPreConfigured) {
         const proxyRes = await fetch('/api/proxies', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -147,8 +148,11 @@ export default function RegistrationPage() {
         });
         if (!proxyRes.ok) {
           const proxyErr = await proxyRes.json();
-          setCheckinMsg({ type: 'error', text: proxyErr.error || 'สร้างหนังสือมอบฉันทะไม่สำเร็จ' });
-          return;
+          // P2002 = proxy already exists, that's OK
+          if (!proxyErr.error?.includes('Unique constraint')) {
+            setCheckinMsg({ type: 'error', text: proxyErr.error || 'สร้างหนังสือมอบฉันทะไม่สำเร็จ' });
+            return;
+          }
         }
       }
 
@@ -185,10 +189,30 @@ export default function RegistrationPage() {
     }
   };
 
-  const openProxyModal = (shareholder: Shareholder) => {
+  const openProxyModal = async (shareholder: Shareholder) => {
     setProxyModalShareholder(shareholder);
     setProxyForm({ proxyType: 'FORM_A', proxyName: '', proxyIdCard: '' });
     setProxyError('');
+    setProxyPreConfigured(false);
+
+    // Auto-detect existing proxy record
+    try {
+      const res = await fetch('/api/proxies');
+      if (res.ok) {
+        const data = await res.json();
+        const existing = (data.proxies || []).find(
+          (p: { shareholderId: string }) => p.shareholderId === shareholder.id
+        );
+        if (existing) {
+          setProxyForm({
+            proxyType: existing.proxyType,
+            proxyName: existing.proxyName || '',
+            proxyIdCard: existing.proxyIdCard || '',
+          });
+          setProxyPreConfigured(true);
+        }
+      }
+    } catch { /* ignore */ }
   };
 
   const handleProxyCheckin = async () => {
@@ -632,6 +656,16 @@ export default function RegistrationPage() {
                 <span className="text-xs text-primary font-semibold">{formatShares(proxyModalShareholder.shares)} หุ้น</span>
               </div>
             </div>
+
+            {proxyPreConfigured && (
+              <div className="mb-4 p-3 rounded-xl bg-emerald-500/10 border border-emerald-500/20 flex items-center gap-2">
+                <CheckCircle2 className="w-4 h-4 text-emerald-400 flex-shrink-0" />
+                <div>
+                  <p className="text-sm font-semibold text-emerald-700 dark:text-emerald-300">ตั้งค่ามอบฉันทะไว้แล้ว</p>
+                  <p className="text-xs text-emerald-600 dark:text-emerald-400/70">ข้อมูลถูกดึงจากหน้าตั้งค่ามอบฉันทะอัตโนมัติ</p>
+                </div>
+              </div>
+            )}
 
             {proxyError && (
               <div className="mb-4 p-3 rounded-lg bg-danger/10 border border-danger/20 text-danger text-sm flex items-center gap-2">

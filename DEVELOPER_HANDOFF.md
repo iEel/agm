@@ -1,7 +1,7 @@
 # 📋 Developer Handoff — e-AGM & QR Ballot System
 
 > **สถานะ**: Phase 1-10 เสร็จสมบูรณ์ ✅ | FR Audit + State Machine + Ballot Print + MC Screen
-> **อัปเดตล่าสุด**: 13 มีนาคม 2569 (v16 — PDF Export + Audit Log Viewer)
+> **อัปเดตล่าสุด**: 14 มีนาคม 2569 (v17 — Proxy B/C Split Vote UI + Ballot Print Fixes)
 
 ---
 
@@ -680,3 +680,29 @@ npx prisma migrate dev --name your_migration_name
 ---
 
 *สร้างโดย AI Assistant เมื่อ 12 มีนาคม 2569*
+
+---
+
+## Changelog v17 (14 มีนาคม 2569)
+
+### 🆕 Proxy Form B/C — Split Vote UI
+- เพิ่ม UI ระบุผลโหวตล่วงหน้าในหน้ามอบฉันทะ (`/setup/proxies`)
+- แสดงปุ่ม เห็นด้วย/ไม่เห็นด้วย/งดออกเสียง สำหรับแต่ละวาระ
+- ปุ่มลัด "เห็นด้วยทั้งหมด" / "ล้าง"
+- ตาราง proxy แสดงจำนวน split votes + expand ดูรายละเอียด
+
+### 🔧 Registration → Proxy Auto-detect
+- หน้าลงทะเบียน auto-detect proxy ที่ตั้งค่าไว้ → auto-fill ประเภท + ชื่อผู้รับมอบ
+- แสดง banner "ตั้งค่ามอบฉันทะไว้แล้ว" เมื่อมี proxy record อยู่
+- ไม่สร้าง proxy ซ้ำเมื่อลงทะเบียน
+
+### 🐛 Bug Fixes
+- **proxyType mismatch**: Registration เก็บ `B` แต่ proxy table เก็บ `FORM_B` → แก้ mapping ใน `auto-generate/route.ts` ทุกจุด (3 จุด)
+- **Ballot duplicate (P2002)**: ELECTION sub-agendas ใช้ `agendaId` เดียวกัน → เพิ่ม try/catch P2002
+- **BigInt serialization**: แก้ `GET/POST /api/proxies` ที่ shares เป็น BigInt → แปลงเป็น string
+- **Clear modal contrast**: สีตัวหนังสือ `text-amber-300` อ่านยากใน Light mode → เปลี่ยนเป็น `text-amber-900 dark:text-amber-200`
+
+### 🖨️ Ballot Print Improvements
+- แสดงประเภทมอบฉันทะเป็นภาษาไทย (ก./ข./ค.) แทน A/B/C
+- ใบสรุปการลงคะแนนล่วงหน้า: ช่องลงชื่อแสดงชื่อ **ผู้รับมอบฉันทะ** (ไม่ใช่ผู้ถือหุ้น)
+- ผลโหวตล่วงหน้าแสดงถูกต้อง (เห็นด้วย/ไม่เห็นด้วย/งดออกเสียง) แทน "-"

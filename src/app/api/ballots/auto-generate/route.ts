@@ -107,11 +107,13 @@ async function handlePost(req: NextRequest, user: AuthUser) {
   const preVoteSummary: PreVoteEntry[] = [];
   let preVotedAgendaIds = new Set<string>();
   let preVotedSubAgendaKeys = new Set<string>(); // "agendaId:subAgendaId"
+  // Map registration proxyType ('B'/'C') to proxy table format ('FORM_B'/'FORM_C')
+  const proxyTypeForDB = proxyType ? `FORM_${proxyType}` : undefined;
 
   if (attendeeType === 'PROXY' && (proxyType === 'B' || proxyType === 'C')) {
-    // Find proxy record for this shareholder in this meeting
+    // Find proxy record
     const proxy = await prisma.proxy.findFirst({
-      where: { meetingId: activeEvent.id, shareholderId, proxyType },
+      where: { meetingId: activeEvent.id, shareholderId, proxyType: proxyTypeForDB },
       include: { splitVotes: true },
     });
 
@@ -176,7 +178,7 @@ async function handlePost(req: NextRequest, user: AuthUser) {
         if (preVotedSubAgendaKeys.has(subKey)) {
           // Add to pre-vote summary, don't generate QR
           const sv = (await prisma.proxy.findFirst({
-            where: { meetingId: activeEvent.id, shareholderId, proxyType: proxyType || undefined },
+            where: { meetingId: activeEvent.id, shareholderId, proxyType: proxyTypeForDB },
             include: { splitVotes: { where: { agendaId: agenda.id, subAgendaId: sub.id } } },
           }))?.splitVotes[0];
 
@@ -191,9 +193,9 @@ async function handlePost(req: NextRequest, user: AuthUser) {
           continue;
         }
 
-        // Generate QR ballot
-        const existing = await prisma.ballot.findFirst({
-          where: { meetingId: activeEvent.id, agendaId: agenda.id, shareholderId, qrData: { contains: sub.id.slice(0, 8) } },
+        // Generate QR ballot — upsert to avoid duplicate constraint errors
+        const existing = await prisma.ballot.findUnique({
+          where: { meetingId_agendaId_shareholderId: { meetingId: activeEvent.id, agendaId: agenda.id, shareholderId } },
           select: { qrData: true },
         });
 
@@ -205,9 +207,22 @@ async function handlePost(req: NextRequest, user: AuthUser) {
         } else {
           const qrToken = randomUUID();
           qrData = `EAGM|${activeEvent.id.slice(0, 8)}|${agenda.id.slice(0, 8)}|${sub.id.slice(0, 8)}|${shareholderId.slice(0, 8)}|${qrToken.slice(0, 12)}`;
-          await prisma.ballot.create({
-            data: { companyId: activeEvent.companyId, meetingId: activeEvent.id, agendaId: agenda.id, shareholderId, qrData },
-          });
+          try {
+            await prisma.ballot.create({
+              data: { companyId: activeEvent.companyId, meetingId: activeEvent.id, agendaId: agenda.id, shareholderId, qrData },
+            });
+          } catch (e: unknown) {
+            // If unique constraint error (P2002), ballot was created between findUnique and create — use existing
+            if (e && typeof e === 'object' && 'code' in e && e.code === 'P2002') {
+              const found = await prisma.ballot.findUnique({
+                where: { meetingId_agendaId_shareholderId: { meetingId: activeEvent.id, agendaId: agenda.id, shareholderId } },
+                select: { qrData: true },
+              });
+              if (found) qrData = found.qrData;
+            } else {
+              throw e;
+            }
+          }
         }
 
         ballots.push({
@@ -224,7 +239,7 @@ async function handlePost(req: NextRequest, user: AuthUser) {
       // Gap 2: Proxy B/C — check if this agenda has pre-vote
       if (preVotedAgendaIds.has(agenda.id)) {
         const sv = (await prisma.proxy.findFirst({
-          where: { meetingId: activeEvent.id, shareholderId, proxyType: proxyType || undefined },
+          where: { meetingId: activeEvent.id, shareholderId, proxyType: proxyTypeForDB },
           include: { splitVotes: { where: { agendaId: agenda.id, subAgendaId: null } } },
         }))?.splitVotes[0];
 
@@ -239,9 +254,9 @@ async function handlePost(req: NextRequest, user: AuthUser) {
         continue; // Don't generate QR
       }
 
-      // Generate QR ballot
-      const existing = await prisma.ballot.findFirst({
-        where: { meetingId: activeEvent.id, agendaId: agenda.id, shareholderId },
+      // Generate QR ballot — upsert to avoid duplicate constraint errors
+      const existing = await prisma.ballot.findUnique({
+        where: { meetingId_agendaId_shareholderId: { meetingId: activeEvent.id, agendaId: agenda.id, shareholderId } },
         select: { qrData: true },
       });
 
@@ -253,9 +268,21 @@ async function handlePost(req: NextRequest, user: AuthUser) {
       } else {
         const qrToken = randomUUID();
         qrData = `EAGM|${activeEvent.id.slice(0, 8)}|${agenda.id.slice(0, 8)}|${shareholderId.slice(0, 8)}|${qrToken.slice(0, 12)}`;
-        await prisma.ballot.create({
-          data: { companyId: activeEvent.companyId, meetingId: activeEvent.id, agendaId: agenda.id, shareholderId, qrData },
-        });
+        try {
+          await prisma.ballot.create({
+            data: { companyId: activeEvent.companyId, meetingId: activeEvent.id, agendaId: agenda.id, shareholderId, qrData },
+          });
+        } catch (e: unknown) {
+          if (e && typeof e === 'object' && 'code' in e && e.code === 'P2002') {
+            const found = await prisma.ballot.findUnique({
+              where: { meetingId_agendaId_shareholderId: { meetingId: activeEvent.id, agendaId: agenda.id, shareholderId } },
+              select: { qrData: true },
+            });
+            if (found) qrData = found.qrData;
+          } else {
+            throw e;
+          }
+        }
       }
 
       ballots.push({

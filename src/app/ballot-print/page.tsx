@@ -61,6 +61,11 @@ const voteLabel: Record<string, string> = {
   ABSTAIN: 'งดออกเสียง (Abstain)',
 };
 
+const proxyTypeLabel: Record<string, string> = {
+  A: 'ก.', B: 'ข.', C: 'ค.',
+  FORM_A: 'ก.', FORM_B: 'ข.', FORM_C: 'ค.',
+};
+
 export default function BallotPrintPage() {
   const [data, setData] = useState<BallotData | null>(null);
   const [error, setError] = useState('');
@@ -129,7 +134,7 @@ export default function BallotPrintPage() {
   const shareholderFullName = `${data.shareholder.titleTh || ''}${data.shareholder.firstNameTh} ${data.shareholder.lastNameTh}`;
   const attendeeLabel = data.attendeeType === 'SELF'
     ? 'มาประชุมด้วยตนเอง'
-    : `ผู้รับมอบฉันทะ แบบ ${data.proxyType || ''}: ${data.proxyName || ''}`;
+    : `ผู้รับมอบฉันทะ แบบ ${proxyTypeLabel[data.proxyType || ''] || data.proxyType || ''}: ${data.proxyName || ''}`;
 
   // Use consolidated shares for Proxy A, otherwise shareholder shares
   const displayShares = data.totalShares || data.shareholder.shares;
@@ -249,7 +254,7 @@ export default function BallotPrintPage() {
           ) : (
             <div className="reg-info">
               <p><strong>ชื่อผู้รับมอบฉันทะ :</strong> {data.proxyName || '-'}</p>
-              <p><strong>ประเภทหนังสือมอบฉันทะ :</strong> แบบ {data.proxyType || '-'}</p>
+              <p><strong>ประเภทหนังสือมอบฉันทะ :</strong> แบบ {proxyTypeLabel[data.proxyType || ''] || data.proxyType || '-'}</p>
               <div className="reg-divider" />
               <p><strong>ผู้มอบฉันทะ (เจ้าของหุ้น) :</strong> {shareholderFullName}</p>
               <p><strong>เลขทะเบียนผู้ถือหุ้น :</strong> {data.shareholder.registrationNo}</p>
@@ -300,7 +305,7 @@ export default function BallotPrintPage() {
             <div className="pv-info">
               <p><strong>ผู้ถือหุ้น :</strong> {shareholderFullName}</p>
               <p><strong>เลขทะเบียน :</strong> {data.shareholder.registrationNo}</p>
-              <p><strong>ประเภทมอบฉันทะ :</strong> แบบ {data.proxyType} | ผู้รับมอบ: {data.proxyName}</p>
+              <p><strong>ประเภทมอบฉันทะ :</strong> แบบ {proxyTypeLabel[data.proxyType || ''] || data.proxyType} | ผู้รับมอบ: {data.proxyName}</p>
             </div>
             <div className="reg-divider" />
             <table className="pv-table">
@@ -334,7 +339,8 @@ export default function BallotPrintPage() {
             )}
             <div className="reg-sign" style={{ marginTop: 16 }}>
               <p>ลงชื่อ <span className="sig-line">&nbsp;</span></p>
-              <p style={{ fontSize: '10pt', color: '#555', marginTop: 4 }}>( {shareholderFullName} )</p>
+              <p style={{ fontSize: '10pt', color: '#555', marginTop: 4 }}>( {data.proxyName || shareholderFullName} )</p>
+              <p style={{ fontSize: '9pt', color: '#888', marginTop: 2 }}>ผู้รับมอบฉันทะ</p>
             </div>
           </div>
         </div>
