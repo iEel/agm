@@ -191,8 +191,8 @@ export default function BallotPrintPage() {
         .bc-header .bc-subtitle { font-size: 6.5pt; color: #555; }
         .bc-body { flex: 1; display: flex; flex-direction: column; }
         .bc-qr-row { display: flex; gap: 2.5mm; align-items: flex-start; margin-bottom: 2mm; }
-        .bc-qr-row img { width: 18mm; height: 18mm; }
-        .bc-qr-placeholder { width: 18mm; height: 18mm; border: 1px solid #ccc; display: flex; align-items: center; justify-content: center; font-size: 6pt; color: #999; }
+        .bc-qr-row img { width: 18mm; height: 18mm; min-width: 18mm; min-height: 18mm; flex-shrink: 0; }
+        .bc-qr-placeholder { width: 18mm; height: 18mm; min-width: 18mm; min-height: 18mm; flex-shrink: 0; border: 1px solid #ccc; display: flex; align-items: center; justify-content: center; font-size: 6pt; color: #999; }
         .bc-ref { font-family: monospace; font-size: 5.5pt; color: #777; text-align: center; margin-top: 1px; }
         .bc-agenda-no { font-size: 12pt; font-weight: 900; margin: 0; }
         .bc-agenda-no-en { font-size: 7pt; color: #666; }
