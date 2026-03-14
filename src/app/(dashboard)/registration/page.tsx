@@ -58,6 +58,20 @@ interface Quorum {
   percentage: string;
 }
 
+interface PendingProxy {
+  id: string;
+  shareholderId: string;
+  proxyType: string;
+  proxyName: string;
+  proxyIdCard: string | null;
+  shareholder: {
+    registrationNo: string;
+    firstNameTh: string;
+    lastNameTh: string;
+    shares: string;
+  };
+}
+
 
 
 const PROXY_TYPES = [
@@ -86,6 +100,11 @@ export default function RegistrationPage() {
   const [proxySaving, setProxySaving] = useState(false);
   const [proxyError, setProxyError] = useState('');
   const [proxyPreConfigured, setProxyPreConfigured] = useState(false);
+  // Map shareholderId -> proxy record for search results
+  const [proxyMap, setProxyMap] = useState<Record<string, { proxyType: string; proxyName: string; proxyIdCard: string }>>({});
+  // Pending proxies (configured but not registered)
+  const [pendingProxies, setPendingProxies] = useState<PendingProxy[]>([]);
+  const [showPendingProxies, setShowPendingProxies] = useState(true);
 
   const fetchRegistrations = useCallback(async () => {
     try {
@@ -94,6 +113,25 @@ export default function RegistrationPage() {
       const data = await res.json();
       setRegistrations(data.registrations || []);
       setQuorum(data.quorum);
+
+      // Fetch pending proxies
+      try {
+        const proxyRes = await fetch('/api/proxies');
+        if (proxyRes.ok) {
+          const proxyData = await proxyRes.json();
+          const registeredIds = new Set((data.registrations || []).map((r: Registration) => r.shareholderId));
+          const pending = (proxyData.proxies || []).filter(
+            (p: PendingProxy) => !registeredIds.has(p.shareholderId)
+          );
+          setPendingProxies(pending);
+          // Also update proxyMap for search
+          const map: Record<string, { proxyType: string; proxyName: string; proxyIdCard: string }> = {};
+          for (const p of (proxyData.proxies || [])) {
+            map[p.shareholderId] = { proxyType: p.proxyType, proxyName: p.proxyName || '', proxyIdCard: p.proxyIdCard || '' };
+          }
+          setProxyMap(map);
+        }
+      } catch { /* ignore */ }
     } catch {
       // ignore
     } finally {
@@ -124,6 +162,19 @@ export default function RegistrationPage() {
       const data = await res.json();
       setSearchResults(data.shareholders || []);
       setShowSearch(true);
+
+      // Fetch proxy records for display in search results
+      try {
+        const proxyRes = await fetch('/api/proxies');
+        if (proxyRes.ok) {
+          const proxyData = await proxyRes.json();
+          const map: Record<string, { proxyType: string; proxyName: string; proxyIdCard: string }> = {};
+          for (const p of (proxyData.proxies || [])) {
+            map[p.shareholderId] = { proxyType: p.proxyType, proxyName: p.proxyName || '', proxyIdCard: p.proxyIdCard || '' };
+          }
+          setProxyMap(map);
+        }
+      } catch { /* ignore */ }
     } catch {
       // ignore
     } finally {
@@ -367,6 +418,79 @@ export default function RegistrationPage() {
         </div>
       )}
 
+      {/* ═══════════ Pending Proxies ═══════════ */}
+      {pendingProxies.length > 0 && (
+        <div className="glass-card overflow-hidden">
+          <button
+            onClick={() => setShowPendingProxies(!showPendingProxies)}
+            className="w-full px-5 py-4 flex items-center justify-between cursor-pointer hover:bg-bg-hover/30 transition-colors"
+          >
+            <div className="flex items-center gap-3">
+              <div className="w-8 h-8 rounded-lg bg-violet-500/15 flex items-center justify-center">
+                <FileSignature className="w-4 h-4 text-violet-400" />
+              </div>
+              <p className="text-sm font-bold text-text-primary">มอบฉันทะรอลงทะเบียน</p>
+              <span className="px-2 py-0.5 rounded-full bg-violet-500/15 text-violet-400 text-xs font-bold">
+                {pendingProxies.length} ราย
+              </span>
+            </div>
+            <span className="text-text-muted text-xs">{showPendingProxies ? '▲ ซ่อน' : '▼ แสดง'}</span>
+          </button>
+          {showPendingProxies && (
+            <div className="border-t border-border">
+              {pendingProxies.map((proxy) => {
+                const proxyLabel: Record<string, string> = { FORM_A: 'ก.', FORM_B: 'ข.', FORM_C: 'ค.' };
+                return (
+                  <div
+                    key={proxy.id}
+                    className="flex items-center justify-between px-5 py-3 border-b border-border/30 last:border-b-0 hover:bg-bg-hover/20 transition-colors"
+                  >
+                    <div className="flex items-center gap-3">
+                      <div className="w-8 h-8 rounded-lg bg-bg-tertiary flex items-center justify-center text-xs font-mono text-text-muted">
+                        <Hash className="w-3.5 h-3.5" />
+                      </div>
+                      <div>
+                        <p className="text-sm font-bold text-text-primary">
+                          {proxy.shareholder.firstNameTh} {proxy.shareholder.lastNameTh}
+                        </p>
+                        <div className="flex items-center gap-2 mt-0.5">
+                          <span className="text-[11px] text-text-muted font-mono">{proxy.shareholder.registrationNo}</span>
+                          <span className="text-[11px] text-text-muted">•</span>
+                          <span className="text-[11px] text-primary font-semibold">{formatShares(proxy.shareholder.shares)} หุ้น</span>
+                          <span className="text-[11px] text-text-muted">•</span>
+                          <span className={`text-[11px] font-semibold px-1.5 py-0.5 rounded ${
+                            proxy.proxyType === 'FORM_B' ? 'bg-emerald-500/10 text-emerald-400'
+                            : proxy.proxyType === 'FORM_C' ? 'bg-purple-500/10 text-purple-400'
+                            : 'bg-blue-500/10 text-blue-400'
+                          }`}>
+                            แบบ {proxyLabel[proxy.proxyType] || proxy.proxyType}
+                          </span>
+                          <span className="text-[11px] text-text-muted">→ {proxy.proxyName}</span>
+                        </div>
+                      </div>
+                    </div>
+                    <button
+                      onClick={() => {
+                        setProxyPreConfigured(true);
+                        handleCheckin(
+                          { id: proxy.shareholderId, registrationNo: proxy.shareholder.registrationNo, firstNameTh: proxy.shareholder.firstNameTh, lastNameTh: proxy.shareholder.lastNameTh, firstNameEn: null, lastNameEn: null, shares: proxy.shareholder.shares },
+                          'PROXY',
+                          { proxyType: proxy.proxyType, proxyName: proxy.proxyName, proxyIdCard: proxy.proxyIdCard || '' }
+                        );
+                      }}
+                      className="flex items-center gap-1.5 px-4 py-2 rounded-xl bg-gradient-to-r from-violet-500 to-purple-500 text-white text-xs font-bold shadow-lg shadow-violet-500/25 hover:shadow-xl cursor-pointer transition-all duration-200 hover:scale-[1.02] active:scale-[0.98]"
+                    >
+                      <LogIn className="w-3.5 h-3.5" />
+                      ลงทะเบียน
+                    </button>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </div>
+      )}
+
       {/* ═══════════ Search & Check-in ═══════════ */}
       <div className="glass-card p-5 space-y-3">
         <div className="flex items-center justify-between">
@@ -472,20 +596,54 @@ export default function RegistrationPage() {
                     </span>
                   ) : (
                     <div className="flex items-center gap-2">
-                      <button
-                        onClick={() => handleCheckin(sh, 'SELF')}
-                        className="flex items-center gap-1.5 px-4 py-2 rounded-xl bg-gradient-to-r from-green-500 to-emerald-500 text-white text-xs font-bold shadow-lg shadow-green-500/25 hover:shadow-xl cursor-pointer transition-all duration-200 hover:scale-[1.02] active:scale-[0.98]"
-                      >
-                        <LogIn className="w-3.5 h-3.5" />
-                        👤 มาเอง
-                      </button>
-                      <button
-                        onClick={() => openProxyModal(sh)}
-                        className="flex items-center gap-1.5 px-4 py-2 rounded-xl bg-gradient-to-r from-violet-500 to-purple-500 text-white text-xs font-bold shadow-lg shadow-violet-500/25 hover:shadow-xl cursor-pointer transition-all duration-200 hover:scale-[1.02] active:scale-[0.98]"
-                      >
-                        <FileSignature className="w-3.5 h-3.5" />
-                        📋 มอบฉันทะ
-                      </button>
+                      {(() => {
+                        const existingProxy = proxyMap[sh.id];
+                        const proxyLabel: Record<string, string> = { FORM_A: 'ก.', FORM_B: 'ข.', FORM_C: 'ค.' };
+                        if (existingProxy) {
+                          return (
+                            <>
+                              <button
+                                onClick={() => {
+                                  setProxyPreConfigured(true);
+                                  handleCheckin(sh, 'PROXY', {
+                                    proxyType: existingProxy.proxyType,
+                                    proxyName: existingProxy.proxyName,
+                                    proxyIdCard: existingProxy.proxyIdCard,
+                                  });
+                                }}
+                                className="flex items-center gap-1.5 px-4 py-2 rounded-xl bg-gradient-to-r from-violet-500 to-purple-500 text-white text-xs font-bold shadow-lg shadow-violet-500/25 hover:shadow-xl cursor-pointer transition-all duration-200 hover:scale-[1.02] active:scale-[0.98]"
+                              >
+                                <FileSignature className="w-3.5 h-3.5" />
+                                📋 มอบฉันทะ แบบ {proxyLabel[existingProxy.proxyType] || existingProxy.proxyType}
+                              </button>
+                              <button
+                                onClick={() => handleCheckin(sh, 'SELF')}
+                                className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-bg-tertiary border border-border/50 text-text-secondary text-xs font-medium cursor-pointer hover:bg-bg-hover transition-all"
+                              >
+                                👤 มาเอง
+                              </button>
+                            </>
+                          );
+                        }
+                        return (
+                          <>
+                            <button
+                              onClick={() => handleCheckin(sh, 'SELF')}
+                              className="flex items-center gap-1.5 px-4 py-2 rounded-xl bg-gradient-to-r from-green-500 to-emerald-500 text-white text-xs font-bold shadow-lg shadow-green-500/25 hover:shadow-xl cursor-pointer transition-all duration-200 hover:scale-[1.02] active:scale-[0.98]"
+                            >
+                              <LogIn className="w-3.5 h-3.5" />
+                              👤 มาเอง
+                            </button>
+                            <button
+                              onClick={() => openProxyModal(sh)}
+                              className="flex items-center gap-1.5 px-4 py-2 rounded-xl bg-gradient-to-r from-violet-500 to-purple-500 text-white text-xs font-bold shadow-lg shadow-violet-500/25 hover:shadow-xl cursor-pointer transition-all duration-200 hover:scale-[1.02] active:scale-[0.98]"
+                            >
+                              <FileSignature className="w-3.5 h-3.5" />
+                              📋 มอบฉันทะ
+                            </button>
+                          </>
+                        );
+                      })()}
                     </div>
                   )}
                 </div>

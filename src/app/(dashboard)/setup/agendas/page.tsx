@@ -74,6 +74,8 @@ export default function AgendaSetupPage() {
   // Sub-agenda form
   const [showSubForm, setShowSubForm] = useState<string | null>(null);
   const [subFormData, setSubFormData] = useState({ title: '', titleTh: '' });
+  const [editingSubId, setEditingSubId] = useState<string | null>(null);
+  const [editSubData, setEditSubData] = useState({ title: '', titleTh: '' });
 
   const fetchAgendas = useCallback(async () => {
     try {
@@ -162,7 +164,7 @@ export default function AgendaSetupPage() {
   };
 
   const handleAddSubAgenda = async (agendaId: string) => {
-    if (!subFormData.title || !subFormData.titleTh) return;
+    if (!subFormData.titleTh) return;
 
     try {
       const res = await fetch(`/api/agendas/${agendaId}/sub-agendas`, {
@@ -179,6 +181,41 @@ export default function AgendaSetupPage() {
 
       setShowSubForm(null);
       setSubFormData({ title: '', titleTh: '' });
+      fetchAgendas();
+    } catch {
+      alert('เกิดข้อผิดพลาด');
+    }
+  };
+
+  const handleDeleteSubAgenda = async (subId: string) => {
+    if (!confirm('ยืนยันการลบวาระย่อยนี้?')) return;
+    try {
+      const res = await fetch(`/api/sub-agendas/${subId}`, { method: 'DELETE' });
+      if (!res.ok) {
+        const data = await res.json();
+        alert(data.error || 'ไม่สามารถลบได้');
+        return;
+      }
+      fetchAgendas();
+    } catch {
+      alert('เกิดข้อผิดพลาด');
+    }
+  };
+
+  const handleEditSubAgenda = async (subId: string) => {
+    if (!editSubData.titleTh) return;
+    try {
+      const res = await fetch(`/api/sub-agendas/${subId}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(editSubData),
+      });
+      if (!res.ok) {
+        const data = await res.json();
+        alert(data.error || 'เกิดข้อผิดพลาด');
+        return;
+      }
+      setEditingSubId(null);
       fetchAgendas();
     } catch {
       alert('เกิดข้อผิดพลาด');
@@ -410,9 +447,61 @@ export default function AgendaSetupPage() {
                     <div className="space-y-2 mb-3">
                       {agenda.subAgendas.map((sub) => (
                         <div key={sub.id} className="flex items-center gap-3 px-3 py-2 rounded-lg bg-bg-secondary/50">
-                          <span className="text-xs font-mono text-text-muted w-8">{agenda.orderNo}.{sub.orderNo}</span>
-                          <span className="text-sm text-text-primary flex-1 truncate">{sub.titleTh}</span>
-                          <span className="text-xs text-text-muted truncate">{sub.title}</span>
+                          {editingSubId === sub.id ? (
+                            <>
+                              <span className="text-xs font-mono text-text-muted w-8">{agenda.orderNo}.{sub.orderNo}</span>
+                              <input
+                                type="text"
+                                value={editSubData.titleTh}
+                                onChange={(e) => setEditSubData(p => ({ ...p, titleTh: e.target.value }))}
+                                className="input-field text-sm flex-1"
+                                placeholder="ชื่อวาระย่อย (TH)"
+                                autoFocus
+                              />
+                              <input
+                                type="text"
+                                value={editSubData.title}
+                                onChange={(e) => setEditSubData(p => ({ ...p, title: e.target.value }))}
+                                className="input-field text-sm flex-1"
+                                placeholder="Title (EN)"
+                              />
+                              <button
+                                onClick={() => handleEditSubAgenda(sub.id)}
+                                className="p-1.5 rounded-lg bg-emerald-500/15 text-emerald-400 hover:bg-emerald-500/25 cursor-pointer"
+                              >
+                                <Save className="w-3.5 h-3.5" />
+                              </button>
+                              <button
+                                onClick={() => setEditingSubId(null)}
+                                className="p-1.5 rounded-lg bg-bg-tertiary text-text-muted hover:bg-bg-hover cursor-pointer"
+                              >
+                                <X className="w-3.5 h-3.5" />
+                              </button>
+                            </>
+                          ) : (
+                            <>
+                              <span className="text-xs font-mono text-text-muted w-8">{agenda.orderNo}.{sub.orderNo}</span>
+                              <span className="text-sm text-text-primary flex-1 truncate">{sub.titleTh}</span>
+                              <span className="text-xs text-text-muted truncate">{sub.title}</span>
+                              <button
+                                onClick={() => {
+                                  setEditingSubId(sub.id);
+                                  setEditSubData({ title: sub.title || '', titleTh: sub.titleTh });
+                                }}
+                                className="p-1.5 rounded-lg hover:bg-bg-hover text-text-muted hover:text-primary cursor-pointer transition-colors"
+                                title="แก้ไข"
+                              >
+                                <Edit3 className="w-3.5 h-3.5" />
+                              </button>
+                              <button
+                                onClick={() => handleDeleteSubAgenda(sub.id)}
+                                className="p-1.5 rounded-lg hover:bg-red-500/10 text-text-muted hover:text-red-400 cursor-pointer transition-colors"
+                                title="ลบ"
+                              >
+                                <Trash2 className="w-3.5 h-3.5" />
+                              </button>
+                            </>
+                          )}
                         </div>
                       ))}
                     </div>

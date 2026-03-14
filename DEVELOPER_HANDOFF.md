@@ -709,4 +709,13 @@ npx prisma migrate dev --name your_migration_name
 - เอาชื่องาน (event name) ออกจาก header ใบลงทะเบียน
 
 ### ⚙️ Agenda Setup
-- Title (English) ไม่บังคับกรอกแล้ว (ทั้ง UI + API)
+- Title (English) ไม่บังคับกรอกแล้ว (ทั้ง UI + API + sub-agendas)
+- วาระย่อย (ELECTION): เพิ่มปุ่ม **แก้ไข** (inline edit) + **ลบ**
+- API ใหม่: `PUT/DELETE /api/sub-agendas/[id]`
+
+### 📋 Registration — Pending Proxy List
+- เพิ่ม section **"มอบฉันทะรอลงทะเบียน"** ที่หน้าลงทะเบียน
+- แสดงรายชื่อ proxy ที่ตั้งค่าไว้แต่ยังไม่ได้ check-in
+- กดปุ่ม **"ลงทะเบียน"** → ลงทะเบียน + พิมพ์บัตรทันที (ไม่ต้องค้นหา)
+- ลงทะเบียนแล้วหายจากรายการอัตโนมัติ (ซ่อน/แสดงได้)
+- ค้นหาผู้ถือหุ้นที่มี proxy → แสดงปุ่ม "มอบฉันทะ แบบ ข." เป็นปุ่มหลัก

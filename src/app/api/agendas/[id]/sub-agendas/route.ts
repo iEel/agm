@@ -28,9 +28,9 @@ async function handlePost(req: NextRequest, user: AuthUser) {
   const body = await req.json();
   const { title, titleTh } = body;
 
-  if (!title || !titleTh) {
+  if (!titleTh) {
     return NextResponse.json(
-      { error: 'กรุณากรอก title และ titleTh' },
+      { error: 'กรุณากรอก titleTh' },
       { status: 400 }
     );
   }
