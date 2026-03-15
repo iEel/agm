@@ -30,6 +30,12 @@ async function handleGet(req: NextRequest, user: AuthUser) {
     orderBy: { checkinAt: 'asc' },
   });
 
+  const PROXY_TYPE_LABELS: Record<string, string> = {
+    A: 'แบบ ก.', FORM_A: 'แบบ ก.',
+    B: 'แบบ ข.', FORM_B: 'แบบ ข.',
+    C: 'แบบ ค.', FORM_C: 'แบบ ค.',
+  };
+
   const rows = registrations.map((r, i) => ({
     'ลำดับ': i + 1,
     'เลขทะเบียน': r.shareholder.registrationNo,
@@ -37,6 +43,7 @@ async function handleGet(req: NextRequest, user: AuthUser) {
     'เลขบัตร': r.shareholder.idCard,
     'จำนวนหุ้น': Number(r.shareholder.shares),
     'ประเภท': r.attendeeType === 'SELF' ? 'มาด้วยตนเอง' : 'ผู้รับมอบฉันทะ',
+    'ประเภทมอบฉันทะ': r.proxyType ? (PROXY_TYPE_LABELS[r.proxyType] || r.proxyType) : '',
     'ผู้รับมอบ': r.proxyName || '',
     'เวลาลงทะเบียน': new Date(r.checkinAt).toLocaleString('th-TH'),
     'เวลาออก': r.checkoutAt ? new Date(r.checkoutAt).toLocaleString('th-TH') : '',
@@ -47,8 +54,8 @@ async function handleGet(req: NextRequest, user: AuthUser) {
   const worksheet = XLSX.utils.json_to_sheet(rows);
   worksheet['!cols'] = [
     { wch: 6 }, { wch: 12 }, { wch: 30 }, { wch: 16 },
-    { wch: 15 }, { wch: 18 }, { wch: 25 }, { wch: 20 },
-    { wch: 20 }, { wch: 15 },
+    { wch: 15 }, { wch: 18 }, { wch: 18 }, { wch: 25 },
+    { wch: 20 }, { wch: 20 }, { wch: 15 },
   ];
 
   XLSX.utils.book_append_sheet(workbook, worksheet, 'Registrations');
