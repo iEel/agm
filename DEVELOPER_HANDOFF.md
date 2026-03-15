@@ -1,7 +1,7 @@
 # 📋 Developer Handoff — e-AGM & QR Ballot System
 
-> **สถานะ**: Phase 1-10 เสร็จสมบูรณ์ ✅ | FR Audit + State Machine + Ballot Print + MC Screen
-> **อัปเดตล่าสุด**: 15 มีนาคม 2569 (v18 — Election Sub-agenda Display on Vote Results)
+> **สถานะ**: Phase 1-10 เสร็จสมบูรณ์ ✅ | FR Audit + State Machine + Ballot Print + MC Screen + SSE Real-time
+> **อัปเดตล่าสุด**: 15 มีนาคม 2569 (v19 — SSE Real-time Updates + BigInt Fix + Registration Search & Pagination)
 
 ---
 
@@ -9,7 +9,7 @@
 
 ระบบจัดการประชุมผู้ถือหุ้น (AGM/EGM) แบบอิเล็กทรอนิกส์ ตาม พ.ร.บ. บริษัทมหาชนจำกัด รองรับ:
 - **Multi-Tenant**: จัดการหลายบริษัท + หลายรอบประชุม (Sequential Events)
-- **Registration**: ลงทะเบียน + คำนวณ Quorum แบบ Real-time (SSE)
+- **Registration**: ลงทะเบียน + คำนวณ Quorum แบบ Real-time (SSE) + ค้นหา + Pagination
 - **Proxy**: มอบฉันทะแบบ ก./ข./ค. + Split Vote + Pre-vote auto-merge
 - **Voting**: QR Ballot + สแกน USB/กล้องมือถือ + **นับแบบหักลบ** (Deduction Method)
 - **Resolution**: 6 ประเภทมติ (ฐานตัวหาร/Denominator ถูกต้องตามกฎหมาย)
@@ -94,9 +94,6 @@ DATABASE_URL=sqlserver://192.168.110.106:1433;database=eagm_db;user=sa;password=
 # Authentication
 AUTH_SECRET=your-random-secret-at-least-32-chars
 JWT_EXPIRES_IN=8h
-
-# Socket.IO (Phase 5)
-SOCKET_PORT=3001
 ```
 
 > ⚠️ **สำคัญ**: `instanceName` ใน `DATABASE_URL` ต้องตรงกับ SQL Server instance
@@ -128,8 +125,8 @@ d:\Antigravity\agm\
 │   │   │   │   ├── agendas/page.tsx      # ตั้งค่าวาระ
 │   │   │   │   ├── shareholders/page.tsx  # ข้อมูลผู้ถือหุ้น
 │   │   │   │   └── proxies/page.tsx       # มอบฉันทะ
-│   │   │   ├── registration/page.tsx      # ลงทะเบียน + Quorum
-│   │   │   ├── quorum/page.tsx            # 🆕 สถานะองค์ประชุม
+│   │   │   ├── registration/page.tsx      # ลงทะเบียน + Quorum + ค้นหา + Pagination
+│   │   │   ├── quorum/page.tsx            # สถานะองค์ประชุม
 │   │   │   ├── tallying/page.tsx          # สแกน QR + โหวต
 │   │   │   ├── chairman/page.tsx          # Dashboard ประธาน
 │   │   │   └── auditor/page.tsx           # ผู้ตรวจสอบ
@@ -162,10 +159,11 @@ d:\Antigravity\agm\
 │   │       ├── proxies/route.ts           # GET/POST Form A/B/C (+split vote validation)
 │   │       ├── ballots/route.ts           # GET/POST (skips ACKNOWLEDGEMENT)
 │   │       ├── votes/route.ts             # GET+summary / POST vote
-│   │       ├── sse/quorum/route.ts        # SSE real-time quorum (+freeze flag)
+│   │       ├── sse/route.ts               # 🆕 SSE real-time event stream (v19)
+│   │       ├── sse/quorum/route.ts        # SSE quorum (+freeze flag)
 │   │       ├── public/
-│   │       │   ├── quorum/route.ts         # 🆕 GET public quorum (no auth)
-│   │       │   └── vote-results/route.ts   # 🆕 GET public vote results (no auth)
+│   │       │   ├── quorum/route.ts         # GET public quorum (no auth)
+│   │       │   └── vote-results/route.ts   # GET public vote results (no auth)
 │   │       ├── reports/
 │   │       │   ├── pdf-data/route.ts       # GET PDF data
 │   │       │   ├── vote-summary/route.ts   # GET vote summary
@@ -175,7 +173,10 @@ d:\Antigravity\agm\
 │   ├── lib/
 │   │   ├── prisma.ts                      # PrismaClient + MsSql adapter
 │   │   ├── auth.ts                        # JWT verify, requireAuth, withAuth
-│   │   └── session-context.tsx            # React context สำหรับ session
+│   │   ├── session-context.tsx            # React context สำหรับ session
+│   │   ├── serialize.ts                   # 🆕 BigInt serializer utility (v19)
+│   │   ├── sse-manager.ts                 # 🆕 SSE connection manager (v19)
+│   │   └── use-sse.ts                     # 🆕 React hook for SSE (v19)
 │   ├── types/index.ts                     # Types, roles, nav config
 │   └── generated/prisma/                  # Auto-generated Prisma client
 ├── .env
@@ -338,11 +339,20 @@ export const GET = withAuth(handler, ['SUPER_ADMIN']);
 | GET | `/api/public/quorum` | สถานะองค์ประชุม (สำหรับ projector/นักลงทุน) |
 | GET | `/api/public/vote-results?agendaOrder=1` | ผลลงคะแนนแต่ละวาระ (สำหรับ projector) |
 
+### SSE (Server-Sent Events)
+| Method | Path | Description |
+|--------|------|-------------|
+| GET | `/api/sse` | 🆕 SSE stream — broadcast events (registration/vote/agenda) |
+
+Event types: `registration`, `vote`, `agenda`, `refresh`
+Heartbeat: ทุก 30 วินาที
+Fallback: ถ้า SSE ขาด → client กลับไปใช้ polling อัตโนมัติ
+
 ### Public Display Pages (ไม่ต้อง Login)
 | Path | Description |
 |------|-------------|
-| `/quorum-display` | หน้าเต็มจอสถานะองค์ประชุม (auto-refresh 5s) |
-| `/vote-results` | หน้าเต็มจอผลลงคะแนนแต่ละวาระ (auto-refresh 5s) |
+| `/quorum-display` | หน้าเต็มจอสถานะองค์ประชุม (SSE real-time) |
+| `/vote-results` | หน้าเต็มจอผลลงคะแนนแต่ละวาระ (SSE real-time) |
 | `/ballot-print?shareholderId=xxx` | หน้าพิมพ์บัตรลงคะแนน (ใบลงทะเบียน + บัตรรายวาระ) |
 
 ### Key Concepts:
@@ -355,6 +365,7 @@ export const GET = withAuth(handler, ['SUPER_ADMIN']);
 - **Shares Guard (FR2.2)**: PUT `/api/shareholders/[id]` ห้ามแก้ไข shares → return 403
 - **Ballot Skip (FR5.1)**: POST `/api/ballots` ไม่สร้างบัตรให้วาระ INFO
 - **Split Vote Validation (FR4.2)**: POST `/api/proxies` validate ผลรวม split vote ≤ สิทธิที่มี
+- **BigInt Serialization**: ใช้ `serializeBigInt()` จาก `src/lib/serialize.ts` แปลง BigInt → string ก่อน JSON response
 - **SSE Freeze (FR8.3)**: SSE ส่ง `quorum.frozen: true` เมื่อมีวาระ OPEN
 
 ### Resolution Types & Denominator Logic (FR6.1):
@@ -497,6 +508,7 @@ export const GET = withAuth(handler, ['SUPER_ADMIN']);
 
 ### Advanced Logic (Phase 5-6 + FR Audit)
 - [x] SSE real-time quorum stream (`/api/sse/quorum`) with freeze during voting
+- [x] **SSE global broadcast** — `/api/sse` stream สำหรับทุก event (registration/vote/agenda)
 - [x] Agenda status transition (PENDING→OPEN→CLOSED→ANNOUNCED)
 - [x] **Correct denominator logic** per Thai Public Company Act (FR6.1)
 - [x] **Pre-vote auto-merge** from Proxy B/C on close (FR4.3)
@@ -575,16 +587,42 @@ export const GET = withAuth(handler, ['SUPER_ADMIN']);
 - [x] **PDF Export** — ปุ่ม "ดาวน์โหลด PDF" ที่หน้ารายงาน ใช้ `@react-pdf/renderer` + Thai font (Sarabun) สร้าง PDF สวยๆ มี header/logo, ตาราง quorum, ผลโหวตแต่ละวาระ, ช่องลายเซ็น — component: `src/components/ReportPDF.tsx`
 - [x] **Audit Log Viewer** — หน้า `/admin/audit-logs` สำหรับ SUPER_ADMIN: แสดงประวัติกิจกรรมทั้งหมด (icon+สีแยกประเภท), ตัวกรอง (ค้นหา/ประเภท/วันที่), แสดงชื่อผู้ใช้แทน UUID, ซ่อน entity ID — API เพิ่ม filter (action/userId/date/search)
 
+### Audit Logging (v18)
+- [x] **Comprehensive audit logs** — 9 action types: CHECKIN, CHECKOUT, RECHECKIN, CANCEL_REGISTRATION, VOTE, CREATE_AGENDA, UPDATE_AGENDA, DELETE_AGENDA, IMPORT_SHAREHOLDERS
+- [x] **Audit log UI update** — Thai labels + icons + colors สำหรับ action types ใหม่
+
+### Chairman Page Enhancements (v18)
+- [x] **Thai status labels** — PENDING/OPEN/CLOSED/ANNOUNCED → รอดำเนินการ/กำลังโหวต/ปิดโหวตแล้ว/ประกาศผลแล้ว
+- [x] **Vote result badges** — แสดง อนุมัติ ✅ / ไม่อนุมัติ ❌ สำหรับ CLOSED/ANNOUNCED agendas
+- [x] **Sub-agenda display** — วาระเลือกตั้งแสดง sub-agendas บนหน้าจอประธาน
+
+### Registration Improvements (v18)
+- [x] **Search filter** — ค้นหาผู้ลงทะเบียนแล้วตามชื่อ, เลขทะเบียน, ผู้รับมอบ (real-time)
+- [x] **Pagination** — 20 รายการ/หน้า + page controls + แสดง "พบ X จาก Y"
+
+### BigInt Serialization Fix (v18)
+- [x] **`src/lib/serialize.ts`** — `serializeBigInt()` utility แปลง BigInt → string อัตโนมัติทุกระดับ
+- [x] **Fixed APIs** — `shareholders/[id]` (GET/PUT), `registrations/[id]` (checkout/recheckin)
+
+### SSE Real-time Updates (v19)
+- [x] **`src/lib/sse-manager.ts`** — SSE connection manager singleton + broadcast
+- [x] **`src/app/api/sse/route.ts`** — SSE endpoint (heartbeat 30s, Nginx-compatible)
+- [x] **`src/lib/use-sse.ts`** — React hook (auto reconnect + exponential backoff + polling fallback)
+- [x] **Broadcast from APIs** — registration (checkin/checkout/recheckin/cancel), vote, agenda status
+- [x] **8 pages updated** — registration, chairman, MC, tallying, auditor, quorum, quorum-display, vote-results
+
 ---
 
 ## 11. Enhancement Ideas (Optional) 💡
 
 - [ ] Responsive design audit สำหรับ tablet ทุกหน้า
-- [ ] PDF generation ด้วย `@react-pdf/renderer` (ตอนนี้ใช้ browser print → PDF)
-- [ ] Ballot print template UI (ดึง Logo + ชื่อบริษัทขึ้นบัตรกระดาษ)
-- [ ] WebSocket แทน SSE สำหรับ latency ที่ต่ำกว่า
+- [ ] Export รายงาน (Excel/PDF) สำหรับรายชื่อผู้ลงทะเบียน, ผลคะแนน, Audit log
+- [ ] Session timeout warning ก่อน JWT หมดอายุ
+- [ ] Role-based sidebar (ซ่อนเมนูที่ไม่เกี่ยวข้องกับ role)
+- [ ] Manual vote input fallback (พิมพ์ refCode ด้วยมือกรณี QR เสียหาย)
 - [ ] Shareholder import สำหรับ Proxy Form C (Excel split vote)
 - [ ] Multi-language support (EN/TH toggle)
+- [ ] Database backup scheduler สำหรับวันประชุม
 
 ---
 
@@ -605,9 +643,34 @@ pm2 save
 pm2 startup
 ```
 
+### Nginx Config (สำหรับ SSE)
+
+ถ้าใช้ Nginx เป็น reverse proxy ต้องเพิ่ม config สำหรับ SSE:
+
+```nginx
+server {
+    listen 80;
+    server_name agm.yourdomain.com;
+
+    location / {
+        proxy_pass http://localhost:3000;
+        proxy_http_version 1.1;
+        proxy_set_header Upgrade $http_upgrade;
+        proxy_set_header Connection '';
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_buffering off;           # สำคัญ! SSE ต้องปิด buffering
+        proxy_cache off;               # ปิด cache สำหรับ SSE
+        proxy_read_timeout 86400s;     # keep-alive 24 ชั่วโมง
+    }
+}
+```
+
+> ⚠️ **สำคัญ**: `proxy_buffering off` และ `proxy_set_header Connection ''` จำเป็นสำหรับ SSE
+
 ### Cloudflare Tunnel Setup
 
-โปรเจคนี้ใช้ **Cloudflare Tunnel** (cloudflared) แทน NGINX reverse proxy:
+โปรเจคนี้รองรับ **Cloudflare Tunnel** (cloudflared) เป็นทางเลือกแทน Nginx:
 
 ```bash
 # 1. ติดตั้ง cloudflared
@@ -643,7 +706,7 @@ AUTH_SECRET=<random-64-char-string>
 
 ### Known Issues / Technical Debt:
 1. **Prisma v7** ต้องใช้ `@prisma/adapter-mssql` เป็น driver adapter (ไม่ใช้ binary engine)
-2. **BigInt serialization** — `shares` เป็น `BigInt` ใน DB ต้องแปลงเป็น string ก่อน JSON.stringify
+2. ~~**BigInt serialization** — ✅ แก้แล้ว: ใช้ `serializeBigInt()` จาก `src/lib/serialize.ts`~~
 3. ~~**QR Camera** — ✅ แก้แล้ว: integrate `html5-qrcode` ในหน้า tallying~~
 4. ~~**Events/Users Admin** — ✅ แก้แล้ว: CRUD + Edit/Delete สมบูรณ์~~
 
@@ -740,3 +803,68 @@ npx prisma migrate dev --name your_migration_name
 - **MC per-candidate results**: หน้า MC แสดงผลคะแนนรายบุคคลสำหรับวาระเลือกตั้ง (เห็นด้วย/ไม่เห็นด้วย/งด + progress bar + badge อนุมัติ/ไม่อนุมัติ)
 - หมายเหตุ: เปิด-ปิดโหวตวาระเลือกตั้งทำ **พร้อมกันทั้งวาระ** (ตามหลักปฏิบัติ AGM ไทย)
 - Files: `src/app/(dashboard)/setup/agendas/page.tsx`, `src/app/(dashboard)/mc/page.tsx`
+
+### 📝 Audit Logging (v18)
+- **9 action types ใหม่**: CHECKIN, CHECKOUT, RECHECKIN, CANCEL_REGISTRATION, VOTE, CREATE_AGENDA, UPDATE_AGENDA, DELETE_AGENDA, IMPORT_SHAREHOLDERS
+- **Audit log UI**: Thai labels + icons + colors สำหรับทุก action type
+- Files: 6 API routes + `src/app/(dashboard)/admin/audit-logs/page.tsx`
+
+### 🎯 Chairman Page
+- **Thai status labels**: แสดง "รอดำเนินการ/กำลังโหวต/ปิดโหวตแล้ว/ประกาศผลแล้ว" แทน English
+- **Vote result badges**: แสดง อนุมัติ ✅ / ไม่อนุมัติ ❌ สำหรับ CLOSED/ANNOUNCED agendas
+- **Sub-agenda display**: วาระเลือกตั้งแสดง sub-agendas
+
+### 🔍 Registration Improvements
+- **Search filter**: ค้นหาผู้ลงทะเบียนแล้ว (ชื่อ, เลขทะเบียน, ผู้รับมอบ) — real-time client-side
+- **Pagination**: 20 รายการ/หน้า + page number buttons + ellipsis + prev/next
+
+### 🐛 BigInt Serialization Fix
+- **`src/lib/serialize.ts`**: `serializeBigInt()` utility แปลง BigInt → string recursively
+- **Fixed**: `shareholders/[id]` (GET/PUT), `registrations/[id]` (checkout/recheckin)
+
+---
+
+## Changelog v19 (15 มีนาคม 2569)
+
+### 🔄 SSE Real-time Updates (แทน Polling)
+
+**Architecture:**
+```
+[API Mutation] → sseManager.broadcast('event-type')
+                    ↓
+[SSE Endpoint /api/sse] → ReadableStream → ทุก client ที่เปิดอยู่
+                    ↓
+[useSSE hook] → EventSource listener → refetch data ทันที
+```
+
+**ไฟล์ใหม่:**
+| ไฟล์ | หน้าที่ |
+|------|--------|
+| `src/lib/sse-manager.ts` | Singleton จัดการ connections + broadcast events |
+| `src/app/api/sse/route.ts` | SSE endpoint (heartbeat 30s, Nginx-compatible) |
+| `src/lib/use-sse.ts` | React hook — auto reconnect (exponential backoff, max 5 attempts) + polling fallback |
+
+**APIs ที่เพิ่ม broadcast:**
+| API | Event Type | เมื่อไหร่ |
+|-----|------------|----------|
+| `POST /api/registrations` | `registration` | Check-in |
+| `PUT /api/registrations/[id]` | `registration` | Checkout / Re-checkin |
+| `DELETE /api/registrations/[id]` | `registration` | Cancel |
+| `POST /api/votes` | `vote` | ลงคะแนน |
+| `PUT /api/agendas/[id]/status` | `agenda` | เปิด/ปิด/ประกาศผลวาระ |
+
+**8 หน้าที่เปลี่ยนจาก polling → SSE:**
+1. `/registration` — 10s fallback
+2. `/chairman` — 5s fallback
+3. `/mc` — 5s fallback
+4. `/tallying` — 5s fallback
+5. `/auditor` — 10s fallback
+6. `/quorum` — 5s fallback
+7. `/quorum-display` — 5s fallback
+8. `/vote-results` — 5s fallback
+
+**Nginx config ที่ต้องเพิ่มสำหรับ SSE:**
+```nginx
+proxy_set_header Connection '';
+proxy_buffering off;
+```
