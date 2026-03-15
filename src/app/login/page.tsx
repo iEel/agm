@@ -67,9 +67,7 @@ export default function LoginPage() {
       <div className="w-full max-w-md mx-4 animate-fade-in relative z-10">
         {/* Logo & Title */}
         <div className="text-center mb-8">
-          <div className="inline-flex items-center justify-center w-24 h-24 rounded-2xl overflow-hidden shadow-lg shadow-primary/25 mb-6">
-            <Image src="/icons/logo.png" alt="e-AGM Logo" width={96} height={96} priority />
-          </div>
+          <Image src="/icons/logo.png" alt="e-AGM Logo" width={96} height={96} priority className="rounded-2xl shadow-lg shadow-primary/25 mb-6 mx-auto" />
           <h1 className="text-3xl font-bold mb-2" style={{ color: '#f1f5f9' }}>
             e-AGM System
           </h1>
