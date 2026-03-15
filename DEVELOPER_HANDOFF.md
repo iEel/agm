@@ -1,7 +1,7 @@
 # 📋 Developer Handoff — e-AGM & QR Ballot System
 
 > **สถานะ**: Phase 1-10 เสร็จสมบูรณ์ ✅ | FR Audit + State Machine + Ballot Print + MC Screen + SSE Real-time
-> **อัปเดตล่าสุด**: 15 มีนาคม 2569 (v19 — SSE Real-time Updates + BigInt Fix + Registration Search & Pagination)
+> **อัปเดตล่าสุด**: 15 มีนาคม 2569 (v20 — Export Audit Log + Mobile Responsive + Deployment Guide)
 
 ---
 
@@ -15,7 +15,7 @@
 - **Resolution**: 6 ประเภทมติ (ฐานตัวหาร/Denominator ถูกต้องตามกฎหมาย)
 - **Dashboard**: ประธาน + ผู้ตรวจสอบ (Read-only) + Freeze ระหว่างโหวต
 - **Import**: นำเข้า Excel/CSV จาก TSD + PDPA Registration Slip
-- **Export**: PDF/Excel รายงาน + Audit Log
+- **Export**: PDF/Excel รายงาน + Audit Log Excel + Deployment Guide (Ubuntu)
 
 ---
 
@@ -868,3 +868,61 @@ npx prisma migrate dev --name your_migration_name
 proxy_set_header Connection '';
 proxy_buffering off;
 ```
+
+---
+
+## Changelog v20 (15 มีนาคม 2569)
+
+### 📊 Audit Log Excel Export
+
+**ไฟล์ใหม่:** `src/app/api/reports/audit-export/route.ts`
+
+- Export audit logs เป็น `.xlsx` — รองรับ filter (action, dateFrom, dateTo)
+- แสดงชื่อผู้ใช้จริงแทน UUID + แปล action type เป็นภาษาไทย
+- Parse JSON details → readable string ใน Excel
+- SUPER_ADMIN เท่านั้นที่เข้าถึงได้
+
+**ปุ่ม Export เพิ่มที่:**
+| หน้า | ปุ่ม |
+|------|-----|
+| `/admin/audit-logs` | "ส่งออก Excel" — ส่ง filter ปัจจุบันไปด้วย |
+| `/reports` | "Excel Audit Log" — export ทั้งหมด |
+
+### 📝 Registration Export — เพิ่มคอลัมน์ประเภทมอบฉันทะ
+
+**แก้ไข:** `src/app/api/reports/registration-export/route.ts`
+
+- เพิ่มคอลัมน์ **"ประเภทมอบฉันทะ"** (แบบ ก./ข./ค.) ระหว่างคอลัมน์ "ประเภท" และ "ผู้รับมอบ"
+- ลำดับคอลัมน์ใหม่: ลำดับ → เลขทะเบียน → ชื่อ → เลขบัตร → หุ้น → ประเภท → **ประเภทมอบฉันทะ** → ผู้รับมอบ → เวลาลงทะเบียน → เวลาออก → ผู้ลงทะเบียน
+
+### 📱 Mobile Responsive (Registration + Tallying)
+
+**Registration Page:**
+| ส่วน | การปรับ |
+|------|--------|
+| ตารางลงทะเบียน | ซ่อนตาราง 7 คอลัมน์บน mobile → แสดง **Card view** แทน (`hidden md:block` + `md:hidden`) |
+| ปุ่มค้นหาลงทะเบียน | `flex-wrap` — ปุ่มขึ้นบรรทัดใหม่อัตโนมัติบนจอแคบ |
+| มอบฉันทะรอลงทะเบียน | `flex-wrap` + ปุ่มชิดขวาล่าง + `truncate` ป้องกันข้อความล้นจอ |
+| ข้อมูลผู้ถือหุ้น | `min-w-0` + `truncate` ชื่อยาว |
+
+**Tallying Page:**
+| ส่วน | การปรับ |
+|------|--------|
+| Scan Mode Toggle | ซ่อน "USB Scanner /" บน mobile → แสดงแค่ "กรอก" |
+| ปุ่มโหวต 3 ปุ่ม | `flex-col` บน mobile (icon บน + text ล่าง) + padding เล็กลง |
+
+### 📖 Deployment Guide
+
+- **`DEPLOYMENT.md`** (ไฟล์ใหม่) — คู่มือ Deploy บน Ubuntu Server 11 หัวข้อ
+- ครอบคลุม: Node.js, MS SQL, PM2, Nginx+SSE, Cloudflare Tunnel, UFW Firewall, Maintenance
+- ลบ `SOCKET_PORT` จาก `.env.example` (ใช้ SSE แทน)
+
+### สรุป Export APIs ทั้งหมด
+
+| รายงาน | API | สิทธิ์ |
+|--------|-----|-------|
+| Excel ผลโหวต | `GET /api/reports/vote-export` | ทุก role |
+| Excel ลงทะเบียน | `GET /api/reports/registration-export` | ทุก role |
+| Excel Audit Log | `GET /api/reports/audit-export` | SUPER_ADMIN |
+| PDF รายงานรวม | Client-side (`@react-pdf/renderer`) | ทุก role |
+| ข้อมูลรายงาน (JSON) | `GET /api/reports/pdf-data` | ทุก role |
