@@ -466,21 +466,19 @@ export default function RegistrationPage() {
                 return (
                   <div
                     key={proxy.id}
-                    className="flex items-center justify-between px-5 py-3 border-b border-border/30 last:border-b-0 hover:bg-bg-hover/20 transition-colors"
+                    className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 px-4 sm:px-5 py-3 border-b border-border/30 last:border-b-0 hover:bg-bg-hover/20 transition-colors"
                   >
-                    <div className="flex items-center gap-3">
-                      <div className="w-8 h-8 rounded-lg bg-bg-tertiary flex items-center justify-center text-xs font-mono text-text-muted">
+                    <div className="flex items-center gap-3 min-w-0">
+                      <div className="w-8 h-8 rounded-lg bg-bg-tertiary flex items-center justify-center text-xs font-mono text-text-muted flex-shrink-0">
                         <Hash className="w-3.5 h-3.5" />
                       </div>
-                      <div>
-                        <p className="text-sm font-bold text-text-primary">
+                      <div className="min-w-0">
+                        <p className="text-sm font-bold text-text-primary truncate">
                           {proxy.shareholder.firstNameTh} {proxy.shareholder.lastNameTh}
                         </p>
-                        <div className="flex items-center gap-2 mt-0.5">
+                        <div className="flex flex-wrap items-center gap-x-2 gap-y-0.5 mt-0.5">
                           <span className="text-[11px] text-text-muted font-mono">{proxy.shareholder.registrationNo}</span>
-                          <span className="text-[11px] text-text-muted">•</span>
                           <span className="text-[11px] text-primary font-semibold">{formatShares(proxy.shareholder.shares)} หุ้น</span>
-                          <span className="text-[11px] text-text-muted">•</span>
                           <span className={`text-[11px] font-semibold px-1.5 py-0.5 rounded ${
                             proxy.proxyType === 'FORM_B' ? 'bg-emerald-500/10 text-emerald-400'
                             : proxy.proxyType === 'FORM_C' ? 'bg-purple-500/10 text-purple-400'
@@ -501,7 +499,7 @@ export default function RegistrationPage() {
                           { proxyType: proxy.proxyType, proxyName: proxy.proxyName, proxyIdCard: proxy.proxyIdCard || '' }
                         );
                       }}
-                      className="flex items-center gap-1.5 px-4 py-2 rounded-xl bg-gradient-to-r from-violet-500 to-purple-500 text-white text-xs font-bold shadow-lg shadow-violet-500/25 hover:shadow-xl cursor-pointer transition-all duration-200 hover:scale-[1.02] active:scale-[0.98]"
+                      className="flex items-center gap-1.5 px-4 py-2 rounded-xl bg-gradient-to-r from-violet-500 to-purple-500 text-white text-xs font-bold shadow-lg shadow-violet-500/25 hover:shadow-xl cursor-pointer transition-all duration-200 hover:scale-[1.02] active:scale-[0.98] self-end sm:self-auto flex-shrink-0"
                     >
                       <LogIn className="w-3.5 h-3.5" />
                       ลงทะเบียน
@@ -581,7 +579,7 @@ export default function RegistrationPage() {
               return (
                 <div
                   key={sh.id}
-                  className={`flex items-center justify-between p-4 rounded-xl border transition-all duration-200 ${
+                  className={`flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-4 rounded-xl border transition-all duration-200 ${
                     isRegistered && !isCheckedOut
                       ? 'bg-emerald-500/5 border-emerald-500/15'
                       : isCheckedOut
@@ -589,36 +587,35 @@ export default function RegistrationPage() {
                         : 'bg-bg-tertiary/50 border-border/50 hover:border-primary/30 hover:bg-bg-hover/30'
                   }`}
                 >
-                  <div className="flex items-center gap-4">
-                    <div className={`w-10 h-10 rounded-xl flex items-center justify-center text-sm font-bold ${
+                  <div className="flex items-center gap-3 sm:gap-4 min-w-0">
+                    <div className={`w-10 h-10 rounded-xl flex items-center justify-center text-sm font-bold flex-shrink-0 ${
                       isRegistered && !isCheckedOut
                         ? 'bg-emerald-500/15 text-emerald-400'
                         : 'bg-bg-tertiary text-text-muted'
                     }`}>
                       <Hash className="w-4 h-4" />
                     </div>
-                    <div>
-                      <p className="text-sm font-bold text-text-primary">
+                    <div className="min-w-0">
+                      <p className="text-sm font-bold text-text-primary truncate">
                         {sh.firstNameTh} {sh.lastNameTh}
                       </p>
-                      <div className="flex items-center gap-3 mt-0.5">
-                        <span className="text-xs text-text-muted font-mono">เลขทะเบียน: {sh.registrationNo}</span>
-                        <span className="text-xs text-text-muted">•</span>
+                      <div className="flex flex-wrap items-center gap-x-2 gap-y-0.5 mt-0.5">
+                        <span className="text-xs text-text-muted font-mono">{sh.registrationNo}</span>
                         <span className="text-xs text-primary font-semibold">{formatShares(sh.shares)} หุ้น</span>
                       </div>
                     </div>
                   </div>
                   {isRegistered && !isCheckedOut ? (
-                    <span className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-emerald-500/15 text-emerald-400 text-xs font-bold">
+                    <span className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-emerald-500/15 text-emerald-400 text-xs font-bold self-end sm:self-auto">
                       <CheckCircle2 className="w-3.5 h-3.5" />
                       ลงทะเบียนแล้ว
                     </span>
                   ) : isCheckedOut ? (
-                    <span className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-red-500/15 text-red-400 text-xs font-bold">
+                    <span className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-red-500/15 text-red-400 text-xs font-bold self-end sm:self-auto">
                       ออกแล้ว
                     </span>
                   ) : (
-                    <div className="flex items-center gap-2">
+                    <div className="flex flex-wrap items-center gap-2 self-end sm:self-auto">
                       {(() => {
                         const existingProxy = proxyMap[sh.id];
                         const proxyLabel: Record<string, string> = { FORM_A: 'ก.', FORM_B: 'ข.', FORM_C: 'ค.' };
@@ -637,7 +634,7 @@ export default function RegistrationPage() {
                                 className="flex items-center gap-1.5 px-4 py-2 rounded-xl bg-gradient-to-r from-violet-500 to-purple-500 text-white text-xs font-bold shadow-lg shadow-violet-500/25 hover:shadow-xl cursor-pointer transition-all duration-200 hover:scale-[1.02] active:scale-[0.98]"
                               >
                                 <FileSignature className="w-3.5 h-3.5" />
-                                📋 มอบฉันทะ แบบ {proxyLabel[existingProxy.proxyType] || existingProxy.proxyType}
+                                📋 แบบ {proxyLabel[existingProxy.proxyType] || existingProxy.proxyType}
                               </button>
                               <button
                                 onClick={() => handleCheckin(sh, 'SELF')}
@@ -744,7 +741,8 @@ export default function RegistrationPage() {
           </div>
         ) : (
           <>
-          <div className="overflow-x-auto">
+          {/* Desktop: Table view */}
+          <div className="hidden md:block overflow-x-auto">
             <table className="w-full">
               <thead>
                 <tr className="border-b border-border bg-bg-tertiary/30">
@@ -836,6 +834,72 @@ export default function RegistrationPage() {
                 ))}
               </tbody>
             </table>
+          </div>
+
+          {/* Mobile: Card view */}
+          <div className="md:hidden divide-y divide-border/30">
+            {filteredRegistrations
+              .slice((regPage - 1) * REG_PER_PAGE, regPage * REG_PER_PAGE)
+              .map((reg) => (
+              <div
+                key={reg.id}
+                className={`p-4 ${
+                  reg.checkoutAt ? 'opacity-50' : ''
+                }`}
+              >
+                <div className="flex items-start justify-between gap-2 mb-2">
+                  <div className="min-w-0">
+                    <p className="text-sm font-bold text-text-primary truncate">
+                      {reg.shareholder.firstNameTh} {reg.shareholder.lastNameTh}
+                    </p>
+                    <div className="flex flex-wrap items-center gap-x-2 gap-y-0.5 mt-0.5">
+                      <span className="text-xs text-primary font-mono font-bold">{reg.shareholder.registrationNo}</span>
+                      <span className="text-xs text-text-muted">{formatShares(reg.shares)} หุ้น</span>
+                    </div>
+                    {reg.proxyName && (
+                      <p className="text-[11px] text-purple-400 mt-0.5">👤 {reg.proxyName}</p>
+                    )}
+                  </div>
+                  <div className="flex flex-col items-end gap-1.5 flex-shrink-0">
+                    <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-bold ${
+                      reg.attendeeType === 'SELF'
+                        ? 'bg-blue-500/15 text-blue-400'
+                        : 'bg-purple-500/15 text-purple-400'
+                    }`}>
+                      {reg.attendeeType === 'SELF' ? '👤 ตนเอง' : '📋 มอบฉันทะ'}
+                    </span>
+                    {reg.checkoutAt ? (
+                      <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-red-500/15 text-red-400 text-[10px] font-bold">
+                        ออก {formatTime(reg.checkoutAt)}
+                      </span>
+                    ) : (
+                      <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-emerald-500/15 text-emerald-400 text-[10px] font-bold">
+                        <CheckCircle2 className="w-3 h-3" />
+                        {formatTime(reg.checkinAt)}
+                      </span>
+                    )}
+                  </div>
+                </div>
+                <div className="flex items-center gap-2 mt-2">
+                  <button
+                    onClick={() => window.open(`/ballot-print?shareholderId=${reg.shareholderId}`, '_blank')}
+                    className="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg bg-primary/10 border border-primary/20 text-primary text-xs font-medium cursor-pointer"
+                  >
+                    <Printer className="w-3.5 h-3.5" />
+                    พิมพ์
+                  </button>
+                  {!reg.checkoutAt && (
+                    <button
+                      onClick={() => handleCheckout(reg.id)}
+                      className="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg bg-red-500/10 border border-red-500/20 text-red-400 text-xs font-medium cursor-pointer"
+                    >
+                      <LogOut className="w-3.5 h-3.5" />
+                      ออก
+                    </button>
+                  )}
+                </div>
+              </div>
+            ))}
           </div>
           {/* Pagination Controls */}
           {filteredRegistrations.length > REG_PER_PAGE && (

@@ -215,18 +215,18 @@ export default function TallyingPage() {
           <div className="flex gap-2">
             <button
               onClick={() => { setScanMode('keyboard'); stopCamera(); }}
-              className={`flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-medium transition-all cursor-pointer ${
+              className={`flex items-center gap-2 px-3 sm:px-4 py-2 rounded-xl text-sm font-medium transition-all cursor-pointer ${
                 scanMode === 'keyboard'
                   ? 'bg-primary/15 text-primary border border-primary/30'
                   : 'bg-bg-tertiary text-text-secondary border border-border hover:border-primary/30'
               }`}
             >
               <Keyboard className="w-4 h-4" />
-              USB Scanner / กรอก
+              <span className="hidden sm:inline">USB Scanner / </span>กรอก
             </button>
             <button
               onClick={() => { setScanMode('camera'); }}
-              className={`flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-medium transition-all cursor-pointer ${
+              className={`flex items-center gap-2 px-3 sm:px-4 py-2 rounded-xl text-sm font-medium transition-all cursor-pointer ${
                 scanMode === 'camera'
                   ? 'bg-primary/15 text-primary border border-primary/30'
                   : 'bg-bg-tertiary text-text-secondary border border-border hover:border-primary/30'
@@ -277,16 +277,16 @@ export default function TallyingPage() {
             )}
 
             {/* Vote Buttons — "นับแบบหักลบ" (เก็บบัตรเฉพาะ ไม่เห็นด้วย/งดฯ/เสีย) */}
-            <div className="grid grid-cols-3 gap-3">
+            <div className="grid grid-cols-3 gap-2 sm:gap-3">
               {VOTE_CHOICES.map((choice) => (
                 <button
                   key={choice.value}
                   onClick={() => handleVoteByQR(choice.value)}
                   disabled={!qrInput.trim()}
-                  className={`flex items-center justify-center gap-2 p-4 rounded-xl text-white font-medium transition-all duration-200 disabled:opacity-30 cursor-pointer ${choice.color}`}
+                  className={`flex flex-col sm:flex-row items-center justify-center gap-1 sm:gap-2 p-3 sm:p-4 rounded-xl text-white font-medium transition-all duration-200 disabled:opacity-30 cursor-pointer ${choice.color}`}
                 >
-                  <choice.icon className="w-5 h-5" />
-                  {choice.label}
+                  <choice.icon className="w-5 h-5 sm:w-5 sm:h-5" />
+                  <span className="text-xs sm:text-sm">{choice.label}</span>
                 </button>
               ))}
             </div>
