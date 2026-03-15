@@ -9,7 +9,6 @@ import {
   EyeOff,
   AlertCircle,
 } from 'lucide-react';
-import Image from 'next/image';
 
 export default function LoginPage() {
   const router = useRouter();
@@ -67,7 +66,20 @@ export default function LoginPage() {
       <div className="w-full max-w-md mx-4 animate-fade-in relative z-10">
         {/* Logo & Title */}
         <div className="text-center mb-8">
-          <Image src="/icons/logo.png" alt="e-AGM Logo" width={96} height={96} priority className="rounded-2xl shadow-lg shadow-primary/25 mb-6 mx-auto" />
+          <div className="inline-flex items-center justify-center w-24 h-24 rounded-2xl gradient-primary shadow-lg shadow-primary/25 mb-6">
+            <svg width="56" height="56" viewBox="0 0 56 56" fill="none" xmlns="http://www.w3.org/2000/svg">
+              {/* Ballot box */}
+              <rect x="10" y="24" width="36" height="24" rx="3" fill="white" opacity="0.95"/>
+              {/* Slot on top */}
+              <rect x="18" y="22" width="20" height="4" rx="1" fill="white" opacity="0.95"/>
+              {/* Ballot paper being inserted */}
+              <rect x="22" y="6" width="14" height="20" rx="2" fill="white" opacity="0.8" transform="rotate(-8 29 16)"/>
+              {/* Checkmark on ballot */}
+              <path d="M25 14 L28 17 L34 11" stroke="#6366f1" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" transform="rotate(-8 29 14)"/>
+              {/* Box shadow/depth */}
+              <rect x="10" y="42" width="36" height="6" rx="3" fill="white" opacity="0.3"/>
+            </svg>
+          </div>
           <h1 className="text-3xl font-bold mb-2" style={{ color: '#f1f5f9' }}>
             e-AGM System
           </h1>
