@@ -18,18 +18,19 @@ interface VoteData {
     approvePercent: string; disapprovePercent: string;
     passed: boolean; result: string; thresholdLabel: string;
   }> | null;
-  allAgendas: Array<{ orderNo: number; titleTh: string; title: string; resolutionType: string; status: string }>;
+  allAgendas: Array<{ orderNo: number; subOrderNo?: number; displayNo: string; titleTh: string; title: string; resolutionType: string; status: string }>;
+  selectedSubOrder: number | null;
   timestamp: string;
 }
 
 export default function VoteResultsDisplayPage() {
   const [data, setData] = useState<VoteData | null>(null);
-  const [selectedAgenda, setSelectedAgenda] = useState(1);
+  const [selectedAgenda, setSelectedAgenda] = useState('1');
   const [error, setError] = useState('');
 
   const fetchData = useCallback(async () => {
     try {
-      const res = await fetch(`/api/public/vote-results?agendaOrder=${selectedAgenda}`);
+      const res = await fetch(`/api/public/vote-results?agendaOrder=${encodeURIComponent(selectedAgenda)}`);
       if (!res.ok) { setError('ไม่มีงานประชุมที่ Active หรือไม่พบวาระ'); return; }
       const json = await res.json();
       setData(json);
@@ -120,17 +121,17 @@ export default function VoteResultsDisplayPage() {
         <h2 className="text-lg font-bold text-white">สรุปผลการลงคะแนนวาระที่:</h2>
         <select
           value={selectedAgenda}
-          onChange={(e) => setSelectedAgenda(Number(e.target.value))}
+          onChange={(e) => setSelectedAgenda(e.target.value)}
           className="px-4 py-1.5 rounded-lg text-gray-800 font-bold text-lg bg-white border-0 cursor-pointer"
         >
           {data.allAgendas.map((a) => (
-            <option key={a.orderNo} value={a.orderNo}>
-              {a.orderNo}
+            <option key={a.displayNo} value={a.displayNo}>
+              {a.displayNo}
             </option>
           ))}
         </select>
         <span className="text-emerald-100 text-sm">
-          ({data.allAgendas.length} วาระ)
+          ({new Set(data.allAgendas.map(a => a.orderNo)).size} วาระ)
         </span>
       </div>
 

@@ -1,7 +1,7 @@
 # 📋 Developer Handoff — e-AGM & QR Ballot System
 
 > **สถานะ**: Phase 1-10 เสร็จสมบูรณ์ ✅ | FR Audit + State Machine + Ballot Print + MC Screen
-> **อัปเดตล่าสุด**: 14 มีนาคม 2569 (v17 — Proxy B/C Split Vote UI + Ballot Print Fixes)
+> **อัปเดตล่าสุด**: 15 มีนาคม 2569 (v18 — Election Sub-agenda Display on Vote Results)
 
 ---
 
@@ -721,3 +721,14 @@ npx prisma migrate dev --name your_migration_name
 - กดปุ่ม **"ลงทะเบียน"** → ลงทะเบียน + พิมพ์บัตรทันที (ไม่ต้องค้นหา)
 - ลงทะเบียนแล้วหายจากรายการอัตโนมัติ (ซ่อน/แสดงได้)
 - ค้นหาผู้ถือหุ้นที่มี proxy → แสดงปุ่ม "มอบฉันทะ แบบ ข." เป็นปุ่มหลัก
+
+---
+
+## Changelog v18 (15 มีนาคม 2569)
+
+### 🗳️ Election Sub-agenda Display on Vote Results
+- **Dropdown แยกวาระย่อย**: วาระเลือกตั้ง (ELECTION) แสดงเป็น 5.1, 5.2, 5.3 ใน dropdown แทนที่จะแสดงเป็นวาระเดียว "5"
+- **ชื่อวาระผสม**: เมื่อเลือก sub-agenda แสดง "ชื่อวาระหลัก : ชื่อผู้สมัคร" เช่น "พิจารณาฯ เลือกตั้งกรรมการ : รศ. ดร.วันชัย รัตนวงษ์"
+- **ผลคะแนนเฉพาะราย**: เลือก 5.1 → แสดงผลคะแนนเฉพาะผู้สมัครคนนั้น
+- **นับจำนวนวาระ**: แสดง "(N วาระ)" นับจากวาระหลัก (unique) ไม่นับรวม sub-agenda
+- Files: `src/app/api/public/vote-results/route.ts`, `src/app/vote-results/page.tsx`

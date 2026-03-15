@@ -17,7 +17,11 @@ import { prisma } from '@/lib/prisma';
 export async function GET(req: NextRequest) {
   try {
     const url = new URL(req.url);
-    const agendaOrder = parseInt(url.searchParams.get('agendaOrder') || '1');
+    const agendaOrderParam = url.searchParams.get('agendaOrder') || '1';
+    // Support decimal format: "5.1" means agenda 5, sub-agenda 1
+    const [mainOrderStr, subOrderStr] = agendaOrderParam.split('.');
+    const agendaOrder = parseInt(mainOrderStr);
+    const selectedSubOrder = subOrderStr ? parseInt(subOrderStr) : null;
 
     const activeEvent = await prisma.event.findFirst({
       where: { isActive: true },
@@ -189,8 +193,12 @@ export async function GET(req: NextRequest) {
     // For ELECTION type, compute per sub-agenda (candidate)
     let subAgendaResults = null;
     if (agenda.resolutionType === 'ELECTION' && agenda.subAgendas.length > 0) {
+      // If a specific sub-agenda is selected, only compute that one
+      const subsToProcess = selectedSubOrder
+        ? agenda.subAgendas.filter(s => s.orderNo === selectedSubOrder)
+        : agenda.subAgendas;
       const subResults = [];
-      for (const sub of agenda.subAgendas) {
+      for (const sub of subsToProcess) {
         const votes = await prisma.vote.findMany({
           where: { agendaId: agenda.id, subAgendaId: sub.id },
           select: { voteChoice: true, shares: true },
@@ -249,7 +257,9 @@ export async function GET(req: NextRequest) {
       agenda: {
         orderNo: agenda.orderNo,
         title: agenda.title,
-        titleTh: agenda.titleTh,
+        titleTh: selectedSubOrder && agenda.resolutionType === 'ELECTION'
+          ? `${agenda.titleTh} : ${agenda.subAgendas.find(s => s.orderNo === selectedSubOrder)?.titleTh || ''}`
+          : agenda.titleTh,
         description: agenda.description,
         resolutionType: agenda.resolutionType,
         status: agenda.status,
@@ -258,13 +268,54 @@ export async function GET(req: NextRequest) {
       },
       results: mainResults,
       subAgendaResults,
-      allAgendas: allAgendas.map(a => ({
-        orderNo: a.orderNo,
-        titleTh: a.titleTh,
-        title: a.title,
-        resolutionType: a.resolutionType,
-        status: a.status,
-      })),
+      // Expand election agendas into sub-agenda entries (5.1, 5.2, ...)
+      allAgendas: await (async () => {
+        const expanded: Array<{ orderNo: number; subOrderNo?: number; displayNo: string; titleTh: string; title: string; resolutionType: string; status: string }> = [];
+        for (const a of allAgendas) {
+          if (a.resolutionType === 'ELECTION') {
+            // Fetch sub-agendas for this election agenda
+            const subs = await prisma.subAgenda.findMany({
+              where: { agendaId: a.id },
+              select: { orderNo: true, titleTh: true, title: true },
+              orderBy: { orderNo: 'asc' },
+            });
+            if (subs.length > 0) {
+              for (const sub of subs) {
+                expanded.push({
+                  orderNo: a.orderNo,
+                  subOrderNo: sub.orderNo,
+                  displayNo: `${a.orderNo}.${sub.orderNo}`,
+                  titleTh: `${a.titleTh} : ${sub.titleTh}`,
+                  title: `${a.title} : ${sub.title}`,
+                  resolutionType: a.resolutionType,
+                  status: a.status,
+                });
+              }
+            } else {
+              // No sub-agendas yet, show as normal
+              expanded.push({
+                orderNo: a.orderNo,
+                displayNo: `${a.orderNo}`,
+                titleTh: a.titleTh,
+                title: a.title,
+                resolutionType: a.resolutionType,
+                status: a.status,
+              });
+            }
+          } else {
+            expanded.push({
+              orderNo: a.orderNo,
+              displayNo: `${a.orderNo}`,
+              titleTh: a.titleTh,
+              title: a.title,
+              resolutionType: a.resolutionType,
+              status: a.status,
+            });
+          }
+        }
+        return expanded;
+      })(),
+      selectedSubOrder,
       timestamp: new Date().toISOString(),
     });
   } catch (err) {
