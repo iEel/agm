@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { useSession } from '@/lib/session-context';
+import { useSSE } from '@/lib/use-sse';
 import {
   Shield,
   Users,
@@ -52,10 +53,8 @@ export default function AuditorPage() {
   }, []);
 
   useEffect(() => { fetchData(); }, [fetchData]);
-  useEffect(() => {
-    const interval = setInterval(fetchData, 10000);
-    return () => clearInterval(interval);
-  }, [fetchData]);
+  // SSE real-time updates (falls back to polling every 10s)
+  useSSE(fetchData, 10000);
 
   const formatShares = (s: string) => BigInt(s).toLocaleString('th-TH');
 

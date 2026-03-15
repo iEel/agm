@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { useSession } from '@/lib/session-context';
+import { useSSE } from '@/lib/use-sse';
 import { AlertCircle, RefreshCw, Users, Percent, Maximize2 } from 'lucide-react';
 
 interface QuorumData {
@@ -38,9 +39,10 @@ export default function QuorumPage() {
 
   useEffect(() => {
     fetchData();
-    const interval = setInterval(fetchData, 5000);
-    return () => clearInterval(interval);
   }, [fetchData]);
+
+  // SSE real-time updates (falls back to polling every 5s)
+  useSSE(fetchData, 5000);
 
   const fmt = (n: string | number) => BigInt(n).toLocaleString('th-TH');
   const fmtDate = (d: string) =>

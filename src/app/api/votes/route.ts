@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { withAuth, type AuthUser } from '@/lib/auth';
+import { sseManager } from '@/lib/sse-manager';
 
 // GET /api/votes — List votes with summary for an agenda
 async function handleGet(req: NextRequest, user: AuthUser) {
@@ -165,6 +166,8 @@ async function handlePost(req: NextRequest, user: AuthUser) {
       }),
     },
   });
+
+  sseManager.broadcast('vote');
 
   return NextResponse.json({ ...vote, shares: vote.shares.toString() }, { status: 201 });
 }

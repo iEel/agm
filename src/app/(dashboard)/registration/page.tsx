@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { useSession } from '@/lib/session-context';
+import { useSSE } from '@/lib/use-sse';
 import {
   UserCheck,
   Search,
@@ -143,9 +144,10 @@ export default function RegistrationPage() {
 
   useEffect(() => {
     fetchRegistrations();
-    const interval = setInterval(fetchRegistrations, 10000);
-    return () => clearInterval(interval);
   }, [fetchRegistrations]);
+
+  // SSE real-time updates (falls back to polling every 10s)
+  useSSE(fetchRegistrations, 10000);
 
   // Auto-clear success messages after 4 seconds
   useEffect(() => {

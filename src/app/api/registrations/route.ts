@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { withAuth, type AuthUser } from '@/lib/auth';
+import { sseManager } from '@/lib/sse-manager';
 
 // GET /api/registrations — List registrations + quorum summary
 async function handleGet(req: NextRequest, user: AuthUser) {
@@ -126,6 +127,8 @@ async function handlePost(req: NextRequest, user: AuthUser) {
       }),
     },
   });
+
+  sseManager.broadcast('registration');
 
   return NextResponse.json({ ...registration, shares: registration.shares.toString() }, { status: 201 });
 }

@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { withAuth, type AuthUser } from '@/lib/auth';
+import { sseManager } from '@/lib/sse-manager';
 
 // PUT /api/agendas/[id]/status — Open/Close voting + snapshot
 async function handlePut(req: NextRequest, user: AuthUser) {
@@ -263,6 +264,8 @@ async function handlePut(req: NextRequest, user: AuthUser) {
       }),
     },
   });
+
+  sseManager.broadcast('agenda');
 
   return NextResponse.json(updated);
 }

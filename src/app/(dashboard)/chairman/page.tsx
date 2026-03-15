@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { useSession } from '@/lib/session-context';
+import { useSSE } from '@/lib/use-sse';
 import {
   Monitor,
   Users,
@@ -139,11 +140,8 @@ export default function ChairmanPage() {
   useEffect(() => { fetchData(); }, [fetchData]);
   useEffect(() => { fetchVotes(); }, [fetchVotes]);
 
-  // Auto-refresh every 5s
-  useEffect(() => {
-    const interval = setInterval(() => { fetchData(); fetchVotes(); }, 5000);
-    return () => clearInterval(interval);
-  }, [fetchData, fetchVotes]);
+  // SSE real-time updates (falls back to polling every 5s)
+  useSSE(() => { fetchData(); fetchVotes(); }, 5000);
 
   const formatShares = (s: string) => BigInt(s).toLocaleString('th-TH');
 

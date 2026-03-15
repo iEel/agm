@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { useSession } from '@/lib/session-context';
+import { useSSE } from '@/lib/use-sse';
 import {
   Mic,
   Users,
@@ -149,9 +150,10 @@ export default function MCPage() {
 
   useEffect(() => {
     fetchData();
-    const interval = setInterval(fetchData, 5000);
-    return () => clearInterval(interval);
   }, [fetchData]);
+
+  // SSE real-time updates (falls back to polling every 5s)
+  useSSE(fetchData, 5000);
 
   // Auto select current OPEN or first PENDING
   useEffect(() => {
@@ -187,8 +189,6 @@ export default function MCPage() {
       } catch { /* ignore */ }
     };
     fetchVotes();
-    const interval = setInterval(fetchVotes, 5000);
-    return () => clearInterval(interval);
   }, [selectedId, agendas]);
 
   const selectedAgenda = agendas.find(a => a.id === selectedId);

@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { useSession } from '@/lib/session-context';
+import { useSSE } from '@/lib/use-sse';
 import {
   ScanLine,
   AlertCircle,
@@ -77,12 +78,8 @@ export default function TallyingPage() {
   useEffect(() => { fetchAgendas(); }, [fetchAgendas]);
   useEffect(() => { fetchVoteSummary(); }, [fetchVoteSummary]);
 
-  // Auto-refresh vote summary every 5s
-  useEffect(() => {
-    if (!selectedAgenda) return;
-    const interval = setInterval(fetchVoteSummary, 5000);
-    return () => clearInterval(interval);
-  }, [selectedAgenda, fetchVoteSummary]);
+  // SSE real-time updates (falls back to polling every 5s)
+  useSSE(fetchVoteSummary, 5000);
 
   // FR7.4: Mobile Camera QR Scanner
   const startCamera = useCallback(async () => {

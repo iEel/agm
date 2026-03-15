@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { withAuth, type AuthUser } from '@/lib/auth';
 import { serializeBigInt } from '@/lib/serialize';
+import { sseManager } from '@/lib/sse-manager';
 
 // PUT /api/registrations/[id] — Check-out (leave meeting)
 async function handlePut(req: NextRequest, user: AuthUser) {
@@ -27,6 +28,7 @@ async function handlePut(req: NextRequest, user: AuthUser) {
         details: JSON.stringify({ shareholderId: existing.shareholderId, changedBy: user.username }),
       },
     });
+    sseManager.broadcast('registration');
     return NextResponse.json(serializeBigInt(updated));
   }
 
@@ -45,6 +47,7 @@ async function handlePut(req: NextRequest, user: AuthUser) {
         details: JSON.stringify({ shareholderId: existing.shareholderId, changedBy: user.username }),
       },
     });
+    sseManager.broadcast('registration');
     return NextResponse.json(serializeBigInt(updated));
   }
 
@@ -70,6 +73,7 @@ async function handleDelete(req: NextRequest, user: AuthUser) {
       details: JSON.stringify({ shareholderId: existing.shareholderId, changedBy: user.username }),
     },
   });
+  sseManager.broadcast('registration');
   return NextResponse.json({ success: true });
 }
 

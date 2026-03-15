@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
+import { useSSE } from '@/lib/use-sse';
 
 interface VoteData {
   company: { nameTh: string; nameEn: string; logoUrl: string | null };
@@ -40,9 +41,10 @@ export default function VoteResultsDisplayPage() {
 
   useEffect(() => {
     fetchData();
-    const interval = setInterval(fetchData, 5000);
-    return () => clearInterval(interval);
   }, [fetchData]);
+
+  // SSE real-time updates (falls back to polling every 5s)
+  useSSE(fetchData, 5000);
 
   const fmt = (n: string | number) => BigInt(n).toLocaleString('th-TH');
   const fmtDate = (d: string) => {
