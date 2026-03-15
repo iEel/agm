@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { withAuth, type AuthUser } from '@/lib/auth';
+import { serializeBigInt } from '@/lib/serialize';
 
 // PUT /api/registrations/[id] — Check-out (leave meeting)
 async function handlePut(req: NextRequest, user: AuthUser) {
@@ -26,7 +27,7 @@ async function handlePut(req: NextRequest, user: AuthUser) {
         details: JSON.stringify({ shareholderId: existing.shareholderId, changedBy: user.username }),
       },
     });
-    return NextResponse.json(updated);
+    return NextResponse.json(serializeBigInt(updated));
   }
 
   if (action === 'checkin') {
@@ -44,7 +45,7 @@ async function handlePut(req: NextRequest, user: AuthUser) {
         details: JSON.stringify({ shareholderId: existing.shareholderId, changedBy: user.username }),
       },
     });
-    return NextResponse.json(updated);
+    return NextResponse.json(serializeBigInt(updated));
   }
 
   return NextResponse.json({ error: 'Action ไม่ถูกต้อง' }, { status: 400 });

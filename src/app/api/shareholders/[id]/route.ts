@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { withAuth, type AuthUser } from '@/lib/auth';
+import { serializeBigInt } from '@/lib/serialize';
 
 // GET /api/shareholders/[id]
 async function handleGet(req: NextRequest, user: AuthUser) {
@@ -11,7 +12,7 @@ async function handleGet(req: NextRequest, user: AuthUser) {
     return NextResponse.json({ error: 'ไม่พบผู้ถือหุ้น' }, { status: 404 });
   }
 
-  return NextResponse.json(shareholder);
+  return NextResponse.json(serializeBigInt(shareholder));
 }
 
 // PUT /api/shareholders/[id]
@@ -46,7 +47,7 @@ async function handlePut(req: NextRequest, user: AuthUser) {
     },
   });
 
-  return NextResponse.json(updated);
+  return NextResponse.json(serializeBigInt(updated));
 }
 
 // DELETE /api/shareholders/[id]
