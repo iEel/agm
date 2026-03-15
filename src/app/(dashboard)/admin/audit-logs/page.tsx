@@ -29,6 +29,7 @@ import {
   Vote,
   FilePlus2,
   FileEdit,
+  Download,
 } from 'lucide-react';
 
 interface AuditLog {
@@ -173,6 +174,19 @@ export default function AuditLogsPage() {
             <Filter className="w-4 h-4" />
             ตัวกรอง
             {hasFilters && <span className="w-2 h-2 rounded-full bg-primary animate-pulse" />}
+          </button>
+          <button
+            onClick={() => {
+              const params = new URLSearchParams();
+              if (filterAction) params.set('action', filterAction);
+              if (filterDateFrom) params.set('dateFrom', filterDateFrom);
+              if (filterDateTo) params.set('dateTo', filterDateTo);
+              window.open(`/api/reports/audit-export?${params.toString()}`, '_blank');
+            }}
+            className="flex items-center gap-2 px-3 py-2 rounded-xl bg-emerald-500/10 text-emerald-400 text-sm font-medium cursor-pointer hover:bg-emerald-500/20 border border-emerald-500/20"
+          >
+            <Download className="w-4 h-4" />
+            ส่งออก Excel
           </button>
           <button
             onClick={() => fetchLogs(pagination.page)}

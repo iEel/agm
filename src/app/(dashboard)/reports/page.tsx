@@ -152,6 +152,9 @@ export default function ReportsPage() {
         <button onClick={handleExportRegistrations} className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-blue-500/15 text-blue-400 text-xs font-medium border border-blue-500/20 hover:bg-blue-500/25 cursor-pointer">
           <Download className="w-3 h-3" /> Excel ลงทะเบียน
         </button>
+        <button onClick={() => window.open('/api/reports/audit-export', '_blank')} className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-purple-500/15 text-purple-400 text-xs font-medium border border-purple-500/20 hover:bg-purple-500/25 cursor-pointer">
+          <Download className="w-3 h-3" /> Excel Audit Log
+        </button>
         {reportData && (
           <>
             <button onClick={handleDownloadPDF} disabled={pdfLoading} className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-primary/15 text-primary text-xs font-medium border border-primary/20 hover:bg-primary/25 cursor-pointer disabled:opacity-50">
