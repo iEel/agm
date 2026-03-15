@@ -14,7 +14,17 @@ import {
   MinusCircle,
   Ban,
   Maximize2,
+  Layers,
+  ThumbsUp,
+  ThumbsDown,
 } from 'lucide-react';
+
+interface SubAgenda {
+  id: string;
+  orderNo: number;
+  titleTh: string;
+  title: string;
+}
 
 interface Agenda {
   id: string;
@@ -23,6 +33,7 @@ interface Agenda {
   title: string;
   resolutionType: string;
   status: string;
+  subAgendas?: SubAgenda[];
 }
 
 interface Quorum {
@@ -40,6 +51,13 @@ interface VoteSummary {
   totalVoted: number;
 }
 
+interface SubAgendaResult {
+  orderNo: number; titleTh: string; title: string;
+  approve: string; disapprove: string; abstain: string; voided: string;
+  approvePercent: string; disapprovePercent: string;
+  passed: boolean; result: string; thresholdLabel: string;
+}
+
 export default function ChairmanPage() {
   const { activeEvent } = useSession();
   const [agendas, setAgendas] = useState<Agenda[]>([]);
@@ -47,6 +65,7 @@ export default function ChairmanPage() {
   const [loading, setLoading] = useState(true);
   const [selectedAgenda, setSelectedAgenda] = useState<string>('');
   const [voteSummary, setVoteSummary] = useState<VoteSummary | null>(null);
+  const [subAgendaResults, setSubAgendaResults] = useState<SubAgendaResult[] | null>(null);
 
   const fetchData = useCallback(async () => {
     try {
@@ -67,14 +86,28 @@ export default function ChairmanPage() {
   }, []);
 
   const fetchVotes = useCallback(async () => {
-    if (!selectedAgenda) { setVoteSummary(null); return; }
+    if (!selectedAgenda) { setVoteSummary(null); setSubAgendaResults(null); return; }
+    const agenda = agendas.find(a => a.id === selectedAgenda);
     try {
       const res = await fetch(`/api/votes?agendaId=${selectedAgenda}`);
       if (!res.ok) return;
       const data = await res.json();
       setVoteSummary(data.summary);
+
+      // For election agendas, also fetch per-candidate results
+      if (agenda?.resolutionType === 'ELECTION') {
+        try {
+          const subRes = await fetch(`/api/public/vote-results?agendaOrder=${agenda.orderNo}`);
+          if (subRes.ok) {
+            const subData = await subRes.json();
+            setSubAgendaResults(subData.subAgendaResults || null);
+          }
+        } catch { /* ignore */ }
+      } else {
+        setSubAgendaResults(null);
+      }
     } catch { /* ignore */ }
-  }, [selectedAgenda]);
+  }, [selectedAgenda, agendas]);
 
   useEffect(() => { fetchData(); }, [fetchData]);
   useEffect(() => { fetchVotes(); }, [fetchVotes]);
@@ -204,9 +237,18 @@ export default function ChairmanPage() {
         >
           <option value="">-- เลือกวาระ --</option>
           {agendas.map((a) => (
-            <option key={a.id} value={a.id}>
-              วาระที่ {a.orderNo}: {a.titleTh} [{a.status}]
-            </option>
+            a.resolutionType === 'ELECTION' && a.subAgendas && a.subAgendas.length > 0 ? (
+              // Election agenda: show sub-agendas as separate options
+              a.subAgendas.map((sub) => (
+                <option key={`${a.id}-${sub.id}`} value={a.id}>
+                  วาระที่ {a.orderNo}.{sub.orderNo}: {a.titleTh} : {sub.titleTh} [{a.status}]
+                </option>
+              ))
+            ) : (
+              <option key={a.id} value={a.id}>
+                วาระที่ {a.orderNo}: {a.titleTh} [{a.status}]
+              </option>
+            )
           ))}
         </select>
       </div>
@@ -240,22 +282,93 @@ export default function ChairmanPage() {
         </div>
       )}
 
+      {/* Per-candidate Election Results */}
+      {currentAgenda?.resolutionType === 'ELECTION' && subAgendaResults && subAgendaResults.length > 0 && (
+        <div className="glass-card p-6">
+          <p className="text-lg font-bold text-text-primary mb-4 flex items-center gap-2">
+            <BarChart3 className="w-5 h-5 text-primary" />
+            ผลการลงคะแนนรายบุคคล
+          </p>
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+            {subAgendaResults.map((sub) => {
+              const items = [
+                { label: 'เห็นด้วย', shares: sub.approve, color: 'text-emerald-400', barColor: 'bg-emerald-500' },
+                { label: 'ไม่เห็นด้วย', shares: sub.disapprove, color: 'text-red-400', barColor: 'bg-red-500' },
+                { label: 'งดออกเสียง', shares: sub.abstain, color: 'text-amber-400', barColor: 'bg-amber-500' },
+              ];
+              const totalShares = items.reduce((s, i) => s + Number(i.shares), 0);
+              const pct = (v: string) => totalShares > 0 ? ((Number(v) / totalShares) * 100).toFixed(1) : '0.0';
+
+              return (
+                <div key={sub.orderNo} className="p-5 rounded-2xl bg-bg-tertiary/50 border border-border/30">
+                  <div className="flex items-center justify-between mb-3">
+                    <p className="text-sm font-bold text-text-primary">
+                      <span className="text-text-muted mr-1.5">{currentAgenda.orderNo}.{sub.orderNo}</span>
+                      {sub.titleTh}
+                    </p>
+                    <span className={`badge border text-xs font-bold ${
+                      sub.passed
+                        ? 'bg-emerald-500/15 text-emerald-400 border-emerald-500/25'
+                        : 'bg-red-500/15 text-red-400 border-red-500/25'
+                    }`}>
+                      {sub.passed ? <><ThumbsUp className="w-3 h-3 mr-1" /> {sub.result}</> : <><ThumbsDown className="w-3 h-3 mr-1" /> {sub.result}</>}
+                    </span>
+                  </div>
+                  <div className="space-y-2">
+                    {items.map(item => (
+                      <div key={item.label}>
+                        <div className="flex items-center justify-between mb-0.5">
+                          <span className={`text-xs font-semibold ${item.color}`}>{item.label}</span>
+                          <span className="text-xs text-text-primary font-bold">{formatShares(item.shares)} หุ้น ({pct(item.shares)}%)</span>
+                        </div>
+                        <div className="w-full h-2 rounded-full bg-bg-primary overflow-hidden">
+                          <div className={`h-full rounded-full ${item.barColor} transition-all duration-500`} style={{ width: `${pct(item.shares)}%` }} />
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
+
       {/* Agenda Status Overview */}
       <div className="glass-card p-4">
         <p className="text-sm font-semibold text-text-secondary mb-3">สถานะวาระทั้งหมด</p>
         <div className="space-y-2">
           {agendas.map((a) => (
-            <div key={a.id} className="flex items-center gap-3 p-3 rounded-xl bg-bg-tertiary/50">
-              <span className="text-sm font-bold text-text-muted w-8">{a.orderNo}</span>
-              <span className="text-sm text-text-primary flex-1 truncate">{a.titleTh}</span>
-              <span className={`badge text-xs ${
-                a.status === 'OPEN' ? 'bg-emerald-500/15 text-emerald-400' :
-                a.status === 'CLOSED' ? 'bg-red-500/15 text-red-400' :
-                a.status === 'ANNOUNCED' ? 'bg-blue-500/15 text-blue-400' :
-                'bg-gray-500/15 text-gray-400'
-              }`}>
-                {a.status}
-              </span>
+            <div key={a.id}>
+              <div className="flex items-center gap-3 p-3 rounded-xl bg-bg-tertiary/50">
+                <span className="text-sm font-bold text-text-muted w-8">{a.orderNo}</span>
+                <span className="text-sm text-text-primary flex-1 truncate">{a.titleTh}</span>
+                {a.resolutionType === 'ELECTION' && a.subAgendas && a.subAgendas.length > 0 && (
+                  <span className="text-[10px] text-text-muted flex items-center gap-1">
+                    <Layers className="w-3 h-3" />
+                    {a.subAgendas.length} รายการ
+                  </span>
+                )}
+                <span className={`badge text-xs ${
+                  a.status === 'OPEN' ? 'bg-emerald-500/15 text-emerald-400' :
+                  a.status === 'CLOSED' ? 'bg-red-500/15 text-red-400' :
+                  a.status === 'ANNOUNCED' ? 'bg-blue-500/15 text-blue-400' :
+                  'bg-gray-500/15 text-gray-400'
+                }`}>
+                  {a.status}
+                </span>
+              </div>
+              {/* Sub-agendas for ELECTION */}
+              {a.resolutionType === 'ELECTION' && a.subAgendas && a.subAgendas.length > 0 && (
+                <div className="ml-11 mt-1 mb-2 space-y-1">
+                  {a.subAgendas.map((sub) => (
+                    <div key={sub.id} className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-bg-secondary/30">
+                      <span className="text-xs font-mono text-text-muted">{a.orderNo}.{sub.orderNo}</span>
+                      <span className="text-xs text-text-primary truncate">{sub.titleTh}</span>
+                    </div>
+                  ))}
+                </div>
+              )}
             </div>
           ))}
         </div>

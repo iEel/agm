@@ -199,12 +199,12 @@ export default function BallotPrintPage() {
         .bc-agenda-title { font-size: 7pt; margin: 1mm 0; }
         .bc-divider { border-top: 1px dashed #bbb; margin: 1.5mm 0; }
         .bc-info p { margin: 0.5mm 0; font-size: 6.5pt; }
-        .bc-checkboxes { margin: 1.5mm 0; }
-        .bc-checkbox { display: flex; align-items: center; gap: 2mm; margin: 1mm 0; font-size: 7.5pt; }
+        .bc-checkboxes { margin: 1mm 0; }
+        .bc-checkbox { display: flex; align-items: center; gap: 2mm; margin: 0.5mm 0; font-size: 7.5pt; }
         .bc-box { width: 4mm; height: 4mm; border: 1.5px solid #333; flex-shrink: 0; }
-        .bc-note { font-size: 5.5pt; color: #666; margin-top: auto; padding-top: 1mm; border-top: 1px dashed #ccc; }
+        .bc-note { font-size: 5.5pt; color: #666; margin-top: auto; padding-top: 0.5mm; border-top: 1px dashed #ccc; }
         .bc-note strong { color: #000; }
-        .bc-sign { font-size: 6pt; text-align: center; margin-top: 1.5mm; }
+        .bc-sign { font-size: 6pt; text-align: center; margin-top: 1mm; }
         .bc-sign .bc-sig-line { display: inline-block; width: 30mm; border-bottom: 1px dotted #333; }
 
         /* ─── Pre-vote Summary Slip ─── */

@@ -61,7 +61,7 @@ async function handleGet(req: NextRequest, user: AuthUser) {
   summary.approve.count = totalRegisteredCount - nonApproveCount;
 
   return NextResponse.json({
-    votes,
+    votes: votes.map(v => ({ ...v, shares: v.shares.toString() })),
     summary: {
       approve: { count: summary.approve.count, shares: summary.approve.shares.toString() },
       disapprove: { count: summary.disapprove.count, shares: summary.disapprove.shares.toString() },
@@ -148,7 +148,7 @@ async function handlePost(req: NextRequest, user: AuthUser) {
     },
   });
 
-  return NextResponse.json(vote, { status: 201 });
+  return NextResponse.json({ ...vote, shares: vote.shares.toString() }, { status: 201 });
 }
 
 export const GET = withAuth(handleGet);
