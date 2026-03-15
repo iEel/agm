@@ -8,8 +8,8 @@ import {
   Eye,
   EyeOff,
   AlertCircle,
-  QrCode,
 } from 'lucide-react';
+import Image from 'next/image';
 
 export default function LoginPage() {
   const router = useRouter();
@@ -67,8 +67,8 @@ export default function LoginPage() {
       <div className="w-full max-w-md mx-4 animate-fade-in relative z-10">
         {/* Logo & Title */}
         <div className="text-center mb-8">
-          <div className="inline-flex items-center justify-center w-20 h-20 rounded-2xl gradient-primary shadow-lg shadow-primary/25 mb-6">
-            <QrCode className="w-10 h-10 text-white" />
+          <div className="inline-flex items-center justify-center w-24 h-24 rounded-2xl overflow-hidden shadow-lg shadow-primary/25 mb-6">
+            <Image src="/icons/logo.png" alt="e-AGM Logo" width={96} height={96} priority />
           </div>
           <h1 className="text-3xl font-bold mb-2" style={{ color: '#f1f5f9' }}>
             e-AGM System
