@@ -20,6 +20,8 @@ import {
   FileSignature,
   Save,
   X,
+  ChevronLeft,
+  ChevronRight,
 } from 'lucide-react';
 
 interface Shareholder {
@@ -108,7 +110,7 @@ export default function RegistrationPage() {
 
   const fetchRegistrations = useCallback(async () => {
     try {
-      const res = await fetch('/api/registrations');
+      const res = await fetch('/api/registrations?limit=9999');
       if (!res.ok) return;
       const data = await res.json();
       setRegistrations(data.registrations || []);
@@ -304,6 +306,8 @@ export default function RegistrationPage() {
     new Date(d).toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
 
   const [regSearchTerm, setRegSearchTerm] = useState('');
+  const [regPage, setRegPage] = useState(1);
+  const REG_PER_PAGE = 20;
 
   const activeRegistrations = registrations.filter(r => !r.checkoutAt);
   const checkedOutRegistrations = registrations.filter(r => r.checkoutAt);
@@ -706,7 +710,7 @@ export default function RegistrationPage() {
               <input
                 type="text"
                 value={regSearchTerm}
-                onChange={(e) => setRegSearchTerm(e.target.value)}
+                onChange={(e) => { setRegSearchTerm(e.target.value); setRegPage(1); }}
                 placeholder="ค้นหาผู้ลงทะเบียนแล้ว... (ชื่อ, เลขทะเบียน, ผู้รับมอบ)"
                 className="w-full pl-9 pr-8 py-2.5 bg-bg-primary border border-border rounded-xl text-sm text-text-primary placeholder-text-muted focus:outline-none focus:ring-2 focus:ring-primary/40 focus:border-primary transition-all"
               />
@@ -737,6 +741,7 @@ export default function RegistrationPage() {
             <p className="text-xs text-text-muted mt-1">ค้นหาผู้ถือหุ้นด้านบนเพื่อ Check-in</p>
           </div>
         ) : (
+          <>
           <div className="overflow-x-auto">
             <table className="w-full">
               <thead>
@@ -751,7 +756,9 @@ export default function RegistrationPage() {
                 </tr>
               </thead>
               <tbody>
-                {filteredRegistrations.map((reg, idx) => (
+                {filteredRegistrations
+                  .slice((regPage - 1) * REG_PER_PAGE, regPage * REG_PER_PAGE)
+                  .map((reg, idx) => (
                   <tr
                     key={reg.id}
                     className={`border-b border-border/30 transition-colors ${
@@ -828,6 +835,55 @@ export default function RegistrationPage() {
               </tbody>
             </table>
           </div>
+          {/* Pagination Controls */}
+          {filteredRegistrations.length > REG_PER_PAGE && (
+            <div className="px-5 py-3 border-t border-border flex items-center justify-between">
+              <p className="text-xs text-text-muted">
+                แสดง {(regPage - 1) * REG_PER_PAGE + 1}–{Math.min(regPage * REG_PER_PAGE, filteredRegistrations.length)} จาก {filteredRegistrations.length} รายการ
+              </p>
+              <div className="flex items-center gap-1">
+                <button
+                  onClick={() => setRegPage(p => Math.max(1, p - 1))}
+                  disabled={regPage <= 1}
+                  className="p-2 rounded-lg hover:bg-bg-hover text-text-muted hover:text-text-primary transition-colors cursor-pointer disabled:opacity-30 disabled:cursor-not-allowed"
+                >
+                  <ChevronLeft className="w-4 h-4" />
+                </button>
+                {Array.from({ length: Math.ceil(filteredRegistrations.length / REG_PER_PAGE) }, (_, i) => i + 1)
+                  .filter(p => p === 1 || p === Math.ceil(filteredRegistrations.length / REG_PER_PAGE) || Math.abs(p - regPage) <= 2)
+                  .reduce<(number | string)[]>((acc, p, i, arr) => {
+                    if (i > 0 && p - (arr[i - 1] as number) > 1) acc.push('...');
+                    acc.push(p);
+                    return acc;
+                  }, [])
+                  .map((p, i) =>
+                    typeof p === 'string' ? (
+                      <span key={`dot-${i}`} className="px-1 text-xs text-text-muted">…</span>
+                    ) : (
+                      <button
+                        key={p}
+                        onClick={() => setRegPage(p)}
+                        className={`min-w-[32px] h-8 rounded-lg text-xs font-bold transition-colors cursor-pointer ${
+                          regPage === p
+                            ? 'bg-primary text-white shadow-md shadow-primary/25'
+                            : 'hover:bg-bg-hover text-text-muted hover:text-text-primary'
+                        }`}
+                      >
+                        {p}
+                      </button>
+                    )
+                  )}
+                <button
+                  onClick={() => setRegPage(p => Math.min(Math.ceil(filteredRegistrations.length / REG_PER_PAGE), p + 1))}
+                  disabled={regPage >= Math.ceil(filteredRegistrations.length / REG_PER_PAGE)}
+                  className="p-2 rounded-lg hover:bg-bg-hover text-text-muted hover:text-text-primary transition-colors cursor-pointer disabled:opacity-30 disabled:cursor-not-allowed"
+                >
+                  <ChevronRight className="w-4 h-4" />
+                </button>
+              </div>
+            </div>
+          )}
+          </>
         )}
       </div>
 
