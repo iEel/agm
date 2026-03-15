@@ -85,6 +85,21 @@ async function handlePost(req: NextRequest, user: AuthUser) {
     },
   });
 
+  await prisma.auditLog.create({
+    data: {
+      userId: user.userId,
+      action: 'CREATE_AGENDA',
+      entity: 'Agenda',
+      entityId: agenda.id,
+      details: JSON.stringify({
+        agendaTitle: titleTh,
+        orderNo: finalOrderNo,
+        resolutionType,
+        changedBy: user.username,
+      }),
+    },
+  });
+
   return NextResponse.json(agenda, { status: 201 });
 }
 

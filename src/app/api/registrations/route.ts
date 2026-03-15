@@ -109,6 +109,24 @@ async function handlePost(req: NextRequest, user: AuthUser) {
     },
   });
 
+  // Audit log
+  await prisma.auditLog.create({
+    data: {
+      userId: user.userId,
+      action: 'CHECKIN',
+      entity: 'Registration',
+      entityId: registration.id,
+      details: JSON.stringify({
+        shareholderName: `${shareholder.titleTh || ''}${shareholder.firstNameTh} ${shareholder.lastNameTh}`,
+        registrationNo: shareholder.registrationNo,
+        shares: shareholder.shares.toString(),
+        attendeeType: attendeeType || 'SELF',
+        proxyName: proxyName || null,
+        registeredBy: user.username,
+      }),
+    },
+  });
+
   return NextResponse.json({ ...registration, shares: registration.shares.toString() }, { status: 201 });
 }
 

@@ -148,6 +148,24 @@ async function handlePost(req: NextRequest, user: AuthUser) {
     },
   });
 
+  // Audit log
+  await prisma.auditLog.create({
+    data: {
+      userId: user.userId,
+      action: 'VOTE',
+      entity: 'Vote',
+      entityId: vote.id,
+      details: JSON.stringify({
+        agendaId: resolvedAgendaId,
+        subAgendaId: subAgendaId || null,
+        shareholderId: resolvedShareholderId,
+        voteChoice,
+        shares: shareholder.shares.toString(),
+        scannedBy: user.username,
+      }),
+    },
+  });
+
   return NextResponse.json({ ...vote, shares: vote.shares.toString() }, { status: 201 });
 }
 

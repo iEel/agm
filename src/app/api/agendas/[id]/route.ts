@@ -54,6 +54,20 @@ async function handlePut(
     },
   });
 
+  await prisma.auditLog.create({
+    data: {
+      userId: user.userId,
+      action: 'UPDATE_AGENDA',
+      entity: 'Agenda',
+      entityId: id,
+      details: JSON.stringify({
+        agendaTitle: updated.titleTh,
+        orderNo: updated.orderNo,
+        changedBy: user.username,
+      }),
+    },
+  });
+
   return NextResponse.json(updated);
 }
 
@@ -79,6 +93,20 @@ async function handleDelete(
   // Delete sub-agendas first
   await prisma.subAgenda.deleteMany({ where: { agendaId: id } });
   await prisma.agenda.delete({ where: { id } });
+
+  await prisma.auditLog.create({
+    data: {
+      userId: user.userId,
+      action: 'DELETE_AGENDA',
+      entity: 'Agenda',
+      entityId: id,
+      details: JSON.stringify({
+        agendaTitle: existing.titleTh,
+        orderNo: existing.orderNo,
+        changedBy: user.username,
+      }),
+    },
+  });
 
   return NextResponse.json({ success: true });
 }

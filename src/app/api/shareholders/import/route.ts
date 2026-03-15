@@ -176,6 +176,23 @@ async function handlePost(req: NextRequest, user: AuthUser) {
       }
     }
 
+    // Audit log
+    await prisma.auditLog.create({
+      data: {
+        userId: user.userId,
+        action: 'IMPORT_SHAREHOLDERS',
+        entity: 'Shareholder',
+        details: JSON.stringify({
+          fileName: file.name,
+          totalRows: rawData.length,
+          created: results.created,
+          updated: results.updated,
+          errors: results.errors.length,
+          changedBy: user.username,
+        }),
+      },
+    });
+
     return NextResponse.json({
       success: true,
       totalRows: rawData.length,

@@ -17,6 +17,15 @@ async function handlePut(req: NextRequest, user: AuthUser) {
       where: { id },
       data: { checkoutAt: new Date() },
     });
+    await prisma.auditLog.create({
+      data: {
+        userId: user.userId,
+        action: 'CHECKOUT',
+        entity: 'Registration',
+        entityId: id,
+        details: JSON.stringify({ shareholderId: existing.shareholderId, changedBy: user.username }),
+      },
+    });
     return NextResponse.json(updated);
   }
 
@@ -25,6 +34,15 @@ async function handlePut(req: NextRequest, user: AuthUser) {
     const updated = await prisma.registration.update({
       where: { id },
       data: { checkoutAt: null },
+    });
+    await prisma.auditLog.create({
+      data: {
+        userId: user.userId,
+        action: 'RECHECKIN',
+        entity: 'Registration',
+        entityId: id,
+        details: JSON.stringify({ shareholderId: existing.shareholderId, changedBy: user.username }),
+      },
     });
     return NextResponse.json(updated);
   }
@@ -42,6 +60,15 @@ async function handleDelete(req: NextRequest, user: AuthUser) {
   }
 
   await prisma.registration.delete({ where: { id } });
+  await prisma.auditLog.create({
+    data: {
+      userId: user.userId,
+      action: 'CANCEL_REGISTRATION',
+      entity: 'Registration',
+      entityId: id,
+      details: JSON.stringify({ shareholderId: existing.shareholderId, changedBy: user.username }),
+    },
+  });
   return NextResponse.json({ success: true });
 }
 

@@ -22,6 +22,13 @@ import {
   Loader2,
   Calendar,
   X,
+  CheckSquare,
+  LogOut,
+  RotateCcw,
+  FileSpreadsheet,
+  Vote,
+  FilePlus2,
+  FileEdit,
 } from 'lucide-react';
 
 interface AuditLog {
@@ -44,18 +51,27 @@ interface Pagination {
 
 // Action labels and styling
 const ACTION_CONFIG: Record<string, { label: string; icon: typeof Clock; color: string; bg: string }> = {
-  LOGIN:              { label: 'เข้าสู่ระบบ',        icon: LogIn,     color: 'text-blue-400',    bg: 'bg-blue-500/15' },
-  CREATE_USER:        { label: 'สร้างผู้ใช้',         icon: UserPlus,  color: 'text-emerald-400', bg: 'bg-emerald-500/15' },
-  UPDATE_USER:        { label: 'แก้ไขผู้ใช้',         icon: Settings,  color: 'text-amber-400',   bg: 'bg-amber-500/15' },
-  DELETE_USER:        { label: 'ลบผู้ใช้',            icon: UserMinus, color: 'text-red-400',     bg: 'bg-red-500/15' },
-  UPDATE_EVENT:       { label: 'แก้ไขงานประชุม',      icon: Settings,  color: 'text-amber-400',   bg: 'bg-amber-500/15' },
-  DELETE_EVENT:       { label: 'ลบงานประชุม',         icon: Trash2,    color: 'text-red-400',     bg: 'bg-red-500/15' },
-  SET_ACTIVE_EVENT:   { label: 'เปิดใช้งานประชุม',     icon: Play,      color: 'text-emerald-400', bg: 'bg-emerald-500/15' },
-  AGENDA_OPEN:        { label: 'เปิดรับโหวต',         icon: Play,      color: 'text-emerald-400', bg: 'bg-emerald-500/15' },
-  AGENDA_CLOSED:      { label: 'ปิดโหวต',            icon: Square,    color: 'text-blue-400',    bg: 'bg-blue-500/15' },
-  AGENDA_ANNOUNCED:   { label: 'ประกาศผล',           icon: Megaphone, color: 'text-violet-400',  bg: 'bg-violet-500/15' },
-  CLEAR_SESSION_DATA: { label: 'ล้างรอบประชุม',       icon: Database,  color: 'text-orange-400',  bg: 'bg-orange-500/15' },
-  CLEAR_ALL_DATA:     { label: 'ล้างข้อมูลทั้งหมด',    icon: Trash2,    color: 'text-red-400',     bg: 'bg-red-500/15' },
+  LOGIN:              { label: 'เข้าสู่ระบบ',        icon: LogIn,         color: 'text-blue-400',    bg: 'bg-blue-500/15' },
+  CREATE_USER:        { label: 'สร้างผู้ใช้',         icon: UserPlus,      color: 'text-emerald-400', bg: 'bg-emerald-500/15' },
+  UPDATE_USER:        { label: 'แก้ไขผู้ใช้',         icon: Settings,      color: 'text-amber-400',   bg: 'bg-amber-500/15' },
+  DELETE_USER:        { label: 'ลบผู้ใช้',            icon: UserMinus,     color: 'text-red-400',     bg: 'bg-red-500/15' },
+  UPDATE_EVENT:       { label: 'แก้ไขงานประชุม',      icon: Settings,      color: 'text-amber-400',   bg: 'bg-amber-500/15' },
+  DELETE_EVENT:       { label: 'ลบงานประชุม',         icon: Trash2,        color: 'text-red-400',     bg: 'bg-red-500/15' },
+  SET_ACTIVE_EVENT:   { label: 'เปิดใช้งานประชุม',     icon: Play,          color: 'text-emerald-400', bg: 'bg-emerald-500/15' },
+  AGENDA_OPEN:        { label: 'เปิดรับโหวต',         icon: Play,          color: 'text-emerald-400', bg: 'bg-emerald-500/15' },
+  AGENDA_CLOSED:      { label: 'ปิดโหวต',            icon: Square,        color: 'text-blue-400',    bg: 'bg-blue-500/15' },
+  AGENDA_ANNOUNCED:   { label: 'ประกาศผล',           icon: Megaphone,     color: 'text-violet-400',  bg: 'bg-violet-500/15' },
+  CLEAR_SESSION_DATA: { label: 'ล้างรอบประชุม',       icon: Database,      color: 'text-orange-400',  bg: 'bg-orange-500/15' },
+  CLEAR_ALL_DATA:     { label: 'ล้างข้อมูลทั้งหมด',    icon: Trash2,        color: 'text-red-400',     bg: 'bg-red-500/15' },
+  CHECKIN:            { label: 'ลงทะเบียนเข้าร่วม',   icon: CheckSquare,   color: 'text-emerald-400', bg: 'bg-emerald-500/15' },
+  CHECKOUT:           { label: 'ออกจากประชุม',        icon: LogOut,        color: 'text-orange-400',  bg: 'bg-orange-500/15' },
+  RECHECKIN:          { label: 'กลับเข้าร่วมประชุม',   icon: RotateCcw,     color: 'text-cyan-400',    bg: 'bg-cyan-500/15' },
+  CANCEL_REGISTRATION:{ label: 'ยกเลิกลงทะเบียน',     icon: UserMinus,     color: 'text-red-400',     bg: 'bg-red-500/15' },
+  VOTE:               { label: 'ลงคะแนนเสียง',       icon: Vote,          color: 'text-indigo-400',  bg: 'bg-indigo-500/15' },
+  CREATE_AGENDA:      { label: 'สร้างวาระ',           icon: FilePlus2,     color: 'text-emerald-400', bg: 'bg-emerald-500/15' },
+  UPDATE_AGENDA:      { label: 'แก้ไขวาระ',           icon: FileEdit,      color: 'text-amber-400',   bg: 'bg-amber-500/15' },
+  DELETE_AGENDA:      { label: 'ลบวาระ',             icon: Trash2,        color: 'text-red-400',     bg: 'bg-red-500/15' },
+  IMPORT_SHAREHOLDERS:{ label: 'นำเข้าผู้ถือหุ้น',     icon: FileSpreadsheet,color: 'text-teal-400',   bg: 'bg-teal-500/15' },
 };
 
 const getActionConfig = (action: string) => ACTION_CONFIG[action] || {
