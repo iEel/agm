@@ -94,6 +94,19 @@ export default function AgendaSetupPage() {
     fetchAgendas();
   }, [fetchAgendas]);
 
+  // Auto-expand election agendas when voting is active
+  useEffect(() => {
+    setExpandedIds((prev) => {
+      const next = new Set(prev);
+      for (const agenda of agendas) {
+        if (agenda.resolutionType === 'ELECTION' && ['OPEN', 'CLOSED', 'ANNOUNCED'].includes(agenda.status)) {
+          next.add(agenda.id);
+        }
+      }
+      return next;
+    });
+  }, [agendas]);
+
   const openCreateModal = () => {
     setEditingAgenda(null);
     setFormData({ title: '', titleTh: '', description: '', resolutionType: 'MAJORITY' });
@@ -431,16 +444,23 @@ export default function AgendaSetupPage() {
                     <p className="text-xs font-semibold text-text-secondary flex items-center gap-2">
                       <Layers className="w-3.5 h-3.5" />
                       วาระย่อย ({agenda.subAgendas.length} รายการ)
+                      {agenda.status !== 'PENDING' && (
+                        <span className={`badge text-[10px] ${STATUS_LABELS[agenda.status]?.color || ''}`}>
+                          {STATUS_LABELS[agenda.status]?.label || agenda.status}
+                        </span>
+                      )}
                     </p>
-                    <button
-                      onClick={() => {
-                        setShowSubForm(agenda.id);
-                        setSubFormData({ title: '', titleTh: '' });
-                      }}
-                      className="text-xs text-primary hover:text-primary/80 font-medium cursor-pointer"
-                    >
-                      + เพิ่มวาระย่อย
-                    </button>
+                    {agenda.status === 'PENDING' && (
+                      <button
+                        onClick={() => {
+                          setShowSubForm(agenda.id);
+                          setSubFormData({ title: '', titleTh: '' });
+                        }}
+                        className="text-xs text-primary hover:text-primary/80 font-medium cursor-pointer"
+                      >
+                        + เพิ่มวาระย่อย
+                      </button>
+                    )}
                   </div>
 
                   {agenda.subAgendas.length > 0 && (
@@ -483,23 +503,27 @@ export default function AgendaSetupPage() {
                               <span className="text-xs font-mono text-text-muted w-8">{agenda.orderNo}.{sub.orderNo}</span>
                               <span className="text-sm text-text-primary flex-1 truncate">{sub.titleTh}</span>
                               <span className="text-xs text-text-muted truncate">{sub.title}</span>
-                              <button
-                                onClick={() => {
-                                  setEditingSubId(sub.id);
-                                  setEditSubData({ title: sub.title || '', titleTh: sub.titleTh });
-                                }}
-                                className="p-1.5 rounded-lg hover:bg-bg-hover text-text-muted hover:text-primary cursor-pointer transition-colors"
-                                title="แก้ไข"
-                              >
-                                <Edit3 className="w-3.5 h-3.5" />
-                              </button>
-                              <button
-                                onClick={() => handleDeleteSubAgenda(sub.id)}
-                                className="p-1.5 rounded-lg hover:bg-red-500/10 text-text-muted hover:text-red-400 cursor-pointer transition-colors"
-                                title="ลบ"
-                              >
-                                <Trash2 className="w-3.5 h-3.5" />
-                              </button>
+                              {agenda.status === 'PENDING' && (
+                                <>
+                                  <button
+                                    onClick={() => {
+                                      setEditingSubId(sub.id);
+                                      setEditSubData({ title: sub.title || '', titleTh: sub.titleTh });
+                                    }}
+                                    className="p-1.5 rounded-lg hover:bg-bg-hover text-text-muted hover:text-primary cursor-pointer transition-colors"
+                                    title="แก้ไข"
+                                  >
+                                    <Edit3 className="w-3.5 h-3.5" />
+                                  </button>
+                                  <button
+                                    onClick={() => handleDeleteSubAgenda(sub.id)}
+                                    className="p-1.5 rounded-lg hover:bg-red-500/10 text-text-muted hover:text-red-400 cursor-pointer transition-colors"
+                                    title="ลบ"
+                                  >
+                                    <Trash2 className="w-3.5 h-3.5" />
+                                  </button>
+                                </>
+                              )}
                             </>
                           )}
                         </div>

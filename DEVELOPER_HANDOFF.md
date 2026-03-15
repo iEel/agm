@@ -732,3 +732,11 @@ npx prisma migrate dev --name your_migration_name
 - **ผลคะแนนเฉพาะราย**: เลือก 5.1 → แสดงผลคะแนนเฉพาะผู้สมัครคนนั้น
 - **นับจำนวนวาระ**: แสดง "(N วาระ)" นับจากวาระหลัก (unique) ไม่นับรวม sub-agenda
 - Files: `src/app/api/public/vote-results/route.ts`, `src/app/vote-results/page.tsx`
+
+### 🎛️ Election Voting Controls (Agenda Setup + MC)
+- **Auto-expand**: วาระเลือกตั้งจะ expand sub-agendas อัตโนมัติเมื่อ status เป็น OPEN/CLOSED/ANNOUNCED
+- **Status badge**: แสดง badge สถานะ ("กำลังโหวต"/"ปิดลงคะแนน") บน sub-agendas section
+- **Edit guard**: ซ่อนปุ่มแก้ไข/ลบ/เพิ่ม sub-agenda เมื่อ status ≠ PENDING (ป้องกันแก้ระหว่างโหวต)
+- **MC per-candidate results**: หน้า MC แสดงผลคะแนนรายบุคคลสำหรับวาระเลือกตั้ง (เห็นด้วย/ไม่เห็นด้วย/งด + progress bar + badge อนุมัติ/ไม่อนุมัติ)
+- หมายเหตุ: เปิด-ปิดโหวตวาระเลือกตั้งทำ **พร้อมกันทั้งวาระ** (ตามหลักปฏิบัติ AGM ไทย)
+- Files: `src/app/(dashboard)/setup/agendas/page.tsx`, `src/app/(dashboard)/mc/page.tsx`

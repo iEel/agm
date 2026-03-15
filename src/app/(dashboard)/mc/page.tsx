@@ -57,6 +57,13 @@ interface VoteResults {
   passed: boolean; result: string; thresholdLabel: string;
 }
 
+interface SubAgendaResult {
+  orderNo: number; titleTh: string; title: string;
+  approve: string; disapprove: string; abstain: string; voided: string;
+  approvePercent: string; disapprovePercent: string;
+  passed: boolean; result: string; thresholdLabel: string;
+}
+
 interface AgendaQuorum {
   additionalCount: number;
   additionalShares: string;
@@ -88,6 +95,7 @@ export default function MCPage() {
   const [changing, setChanging] = useState(false);
   const [error, setError] = useState('');
   const [voteResults, setVoteResults] = useState<VoteResults | null>(null);
+  const [subAgendaResults, setSubAgendaResults] = useState<SubAgendaResult[] | null>(null);
   const [agendaQuorum, setAgendaQuorum] = useState<AgendaQuorum | null>(null);
 
   // Script editing
@@ -156,10 +164,10 @@ export default function MCPage() {
 
   // Fetch vote results + quorum for selected agenda
   useEffect(() => {
-    if (!selectedId) { setVoteResults(null); setAgendaQuorum(null); return; }
+    if (!selectedId) { setVoteResults(null); setSubAgendaResults(null); setAgendaQuorum(null); return; }
     const agenda = agendas.find(a => a.id === selectedId);
     if (!agenda || agenda.resolutionType === 'INFO') {
-      setVoteResults(null); setAgendaQuorum(null);
+      setVoteResults(null); setSubAgendaResults(null); setAgendaQuorum(null);
       return;
     }
     const fetchVotes = async () => {
@@ -170,8 +178,10 @@ export default function MCPage() {
           setAgendaQuorum(data.quorum);
           if (['CLOSED', 'ANNOUNCED'].includes(agenda.status)) {
             setVoteResults(data.results);
+            setSubAgendaResults(data.subAgendaResults || null);
           } else {
             setVoteResults(null);
+            setSubAgendaResults(null);
           }
         }
       } catch { /* ignore */ }
@@ -538,7 +548,14 @@ export default function MCPage() {
               {/* Sub-agendas */}
               {selectedAgenda.subAgendas && selectedAgenda.subAgendas.length > 0 && (
                 <div className="space-y-2">
-                  <p className="text-xs font-semibold text-text-muted uppercase tracking-wider">วาระย่อย</p>
+                  <p className="text-xs font-semibold text-text-muted uppercase tracking-wider flex items-center gap-2">
+                    วาระย่อย ({selectedAgenda.subAgendas.length} รายการ)
+                    {selectedAgenda.status !== 'PENDING' && (
+                      <span className={`badge text-[10px] ${(STATUS_CONFIG[selectedAgenda.status]?.bg || '')}`}>
+                        {STATUS_CONFIG[selectedAgenda.status]?.label}
+                      </span>
+                    )}
+                  </p>
                   {selectedAgenda.subAgendas.map(sub => (
                     <div key={sub.id} className="p-3 rounded-xl bg-bg-tertiary/50 border border-border/30">
                       <p className="text-sm text-text-primary">
@@ -547,6 +564,56 @@ export default function MCPage() {
                       </p>
                     </div>
                   ))}
+                </div>
+              )}
+
+              {/* Per-candidate Election Results — show when CLOSED or ANNOUNCED */}
+              {selectedAgenda.resolutionType === 'ELECTION' && ['CLOSED', 'ANNOUNCED'].includes(selectedAgenda.status) && subAgendaResults && subAgendaResults.length > 0 && (
+                <div className="space-y-3">
+                  <p className="text-sm font-bold text-text-primary flex items-center gap-2">
+                    <BarChart3 className="w-4 h-4 text-primary" />
+                    ผลการลงคะแนนรายบุคคล
+                  </p>
+                  {subAgendaResults.map((sub) => {
+                    const items = [
+                      { label: 'เห็นด้วย', shares: sub.approve, color: 'text-emerald-400', barColor: 'bg-emerald-500' },
+                      { label: 'ไม่เห็นด้วย', shares: sub.disapprove, color: 'text-red-400', barColor: 'bg-red-500' },
+                      { label: 'งดออกเสียง', shares: sub.abstain, color: 'text-amber-400', barColor: 'bg-amber-500' },
+                    ];
+                    const totalShares = items.reduce((s, i) => s + Number(i.shares), 0);
+                    const pct = (v: string) => totalShares > 0 ? ((Number(v) / totalShares) * 100).toFixed(1) : '0.0';
+
+                    return (
+                      <div key={sub.orderNo} className="p-4 rounded-xl bg-gradient-to-br from-bg-tertiary/80 to-bg-tertiary/30 border border-border/50">
+                        <div className="flex items-center justify-between mb-3">
+                          <p className="text-sm font-bold text-text-primary">
+                            <span className="text-text-muted mr-1">{selectedAgenda.orderNo}.{sub.orderNo}</span>
+                            {sub.titleTh}
+                          </p>
+                          <span className={`badge border text-[10px] font-bold ${
+                            sub.passed
+                              ? 'bg-emerald-500/15 text-emerald-400 border-emerald-500/25'
+                              : 'bg-red-500/15 text-red-400 border-red-500/25'
+                          }`}>
+                            {sub.passed ? <><ThumbsUp className="w-3 h-3 mr-1" /> {sub.result}</> : <><ThumbsDown className="w-3 h-3 mr-1" /> {sub.result}</>}
+                          </span>
+                        </div>
+                        <div className="space-y-2">
+                          {items.map(item => (
+                            <div key={item.label}>
+                              <div className="flex items-center justify-between mb-0.5">
+                                <span className={`text-[11px] font-semibold ${item.color}`}>{item.label}</span>
+                                <span className="text-[11px] text-text-primary font-bold">{fmtShares(item.shares)} ({pct(item.shares)}%)</span>
+                              </div>
+                              <div className="w-full h-1.5 rounded-full bg-bg-primary overflow-hidden">
+                                <div className={`h-full rounded-full ${item.barColor} transition-all duration-500`} style={{ width: `${pct(item.shares)}%` }} />
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    );
+                  })}
                 </div>
               )}
 
