@@ -58,6 +58,13 @@ interface SubAgendaResult {
   passed: boolean; result: string; thresholdLabel: string;
 }
 
+const STATUS_LABELS: Record<string, { label: string; color: string }> = {
+  PENDING:   { label: 'รอดำเนินการ', color: 'bg-gray-500/15 text-gray-400' },
+  OPEN:      { label: 'กำลังโหวต',   color: 'bg-emerald-500/15 text-emerald-400' },
+  CLOSED:    { label: 'ปิดโหวตแล้ว', color: 'bg-blue-500/15 text-blue-400' },
+  ANNOUNCED: { label: 'ประกาศผลแล้ว', color: 'bg-violet-500/15 text-violet-400' },
+};
+
 export default function ChairmanPage() {
   const { activeEvent } = useSession();
   const [agendas, setAgendas] = useState<Agenda[]>([]);
@@ -66,6 +73,7 @@ export default function ChairmanPage() {
   const [selectedAgenda, setSelectedAgenda] = useState<string>('');
   const [voteSummary, setVoteSummary] = useState<VoteSummary | null>(null);
   const [subAgendaResults, setSubAgendaResults] = useState<SubAgendaResult[] | null>(null);
+  const [voteResultMap, setVoteResultMap] = useState<Record<string, { passed: boolean; result: string }>>({});
 
   const fetchData = useCallback(async () => {
     try {
@@ -79,7 +87,26 @@ export default function ChairmanPage() {
       }
       if (agendaRes.ok) {
         const agendaData = await agendaRes.json();
-        setAgendas(agendaData.agendas || []);
+        const agendasList = agendaData.agendas || [];
+        setAgendas(agendasList);
+
+        // Fetch vote results for all closed/announced agendas
+        const resultMap: Record<string, { passed: boolean; result: string }> = {};
+        const closedAgendas = agendasList.filter((a: Agenda) => ['CLOSED', 'ANNOUNCED'].includes(a.status) && a.resolutionType !== 'INFO');
+        await Promise.all(
+          closedAgendas.map(async (a: Agenda) => {
+            try {
+              const res = await fetch(`/api/public/vote-results?agendaOrder=${a.orderNo}`);
+              if (res.ok) {
+                const data = await res.json();
+                if (data.results) {
+                  resultMap[a.id] = { passed: data.results.passed, result: data.results.result };
+                }
+              }
+            } catch { /* ignore */ }
+          })
+        );
+        setVoteResultMap(resultMap);
       }
     } catch { /* ignore */ }
     finally { setLoading(false); }
@@ -349,14 +376,21 @@ export default function ChairmanPage() {
                     {a.subAgendas.length} รายการ
                   </span>
                 )}
-                <span className={`badge text-xs ${
-                  a.status === 'OPEN' ? 'bg-emerald-500/15 text-emerald-400' :
-                  a.status === 'CLOSED' ? 'bg-red-500/15 text-red-400' :
-                  a.status === 'ANNOUNCED' ? 'bg-blue-500/15 text-blue-400' :
-                  'bg-gray-500/15 text-gray-400'
-                }`}>
-                  {a.status}
+                <span className={`badge text-xs ${STATUS_LABELS[a.status]?.color || 'bg-gray-500/15 text-gray-400'}`}>
+                  {STATUS_LABELS[a.status]?.label || a.status}
                 </span>
+                {['CLOSED', 'ANNOUNCED'].includes(a.status) && a.resolutionType !== 'INFO' && voteResultMap[a.id] && (
+                  <span className={`badge text-xs font-bold ${
+                    voteResultMap[a.id].passed
+                      ? 'bg-emerald-500/15 text-emerald-400'
+                      : 'bg-red-500/15 text-red-400'
+                  }`}>
+                    {voteResultMap[a.id].passed ? <><ThumbsUp className="w-3 h-3 mr-1" /> {voteResultMap[a.id].result}</> : <><ThumbsDown className="w-3 h-3 mr-1" /> {voteResultMap[a.id].result}</>}
+                  </span>
+                )}
+                {a.resolutionType === 'INFO' && (
+                  <span className="badge text-xs bg-gray-500/15 text-gray-400">แจ้งเพื่อทราบ</span>
+                )}
               </div>
               {/* Sub-agendas for ELECTION */}
               {a.resolutionType === 'ELECTION' && a.subAgendas && a.subAgendas.length > 0 && (
