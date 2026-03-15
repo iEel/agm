@@ -107,8 +107,10 @@ nc -zv 192.168.110.106 1433
 sudo apt-get install -y git
 
 # 2. Clone repository
-cd /home/$USER
-git clone https://github.com/iEel/agm.git
+cd /var/www
+sudo mkdir -p agm
+sudo chown $USER:$USER agm
+git clone https://github.com/iEel/agm.git agm
 cd agm
 
 # 3. Install dependencies
@@ -199,11 +201,11 @@ PM2 เป็น process manager ที่ทำให้ app:
 sudo npm install -g pm2
 
 # 2. สร้าง ecosystem config
-cat > /home/$USER/agm/ecosystem.config.cjs << 'EOF'
+cat > /var/www/agm/ecosystem.config.cjs << 'EOF'
 module.exports = {
   apps: [{
     name: 'eagm',
-    cwd: '/home/' + process.env.USER + '/agm',
+    cwd: '/var/www/agm',
     script: 'node_modules/.bin/next',
     args: 'start',
     env: {
@@ -222,10 +224,10 @@ module.exports = {
 EOF
 
 # 3. สร้างโฟลเดอร์ logs
-mkdir -p /home/$USER/agm/logs
+mkdir -p /var/www/agm/logs
 
 # 4. Start app
-cd /home/$USER/agm
+cd /var/www/agm
 pm2 start ecosystem.config.cjs
 
 # 5. ตรวจสอบ
@@ -397,7 +399,7 @@ mkdir -p ~/.cloudflared
 
 cat > ~/.cloudflared/config.yml << 'EOF'
 tunnel: TUNNEL_ID_HERE
-credentials-file: /home/YOUR_USER/.cloudflared/TUNNEL_ID_HERE.json
+credentials-file: /root/.cloudflared/TUNNEL_ID_HERE.json
 
 ingress:
   # ถ้าใช้ Nginx (แนะนำ)
@@ -412,7 +414,7 @@ ingress:
   - service: http_status:404
 EOF
 
-# แก้ไข TUNNEL_ID_HERE และ YOUR_USER ให้ตรง
+# แก้ไข TUNNEL_ID_HERE ให้ตรง
 # nano ~/.cloudflared/config.yml
 
 
@@ -511,7 +513,7 @@ sudo nano /etc/ssh/sshd_config
 ### อัปเดตโค้ด (Deploy version ใหม่):
 
 ```bash
-cd /home/$USER/agm
+cd /var/www/agm
 
 # 1. ดึงโค้ดใหม่
 git pull origin master
@@ -538,7 +540,7 @@ pm2 logs eagm --lines 20
 ### สร้างเป็น script (แนะนำ):
 
 ```bash
-cat > /home/$USER/agm/deploy.sh << 'EOF'
+cat > /var/www/agm/deploy.sh << 'EOF'
 #!/bin/bash
 set -e
 echo "🔄 Pulling latest code..."
@@ -555,7 +557,7 @@ echo "✅ Deploy complete!"
 pm2 logs eagm --lines 5
 EOF
 
-chmod +x /home/$USER/agm/deploy.sh
+chmod +x /var/www/agm/deploy.sh
 
 # ใช้: ./deploy.sh
 ```
@@ -589,7 +591,7 @@ sudo journalctl -u nginx -f
 | Login ไม่ได้ | AUTH_SECRET เปลี่ยน | cookie เก่าใช้ไม่ได้ → ลบ cookie แล้ว login ใหม่ |
 | Prisma error | schema ไม่ตรง | `npx prisma db push` แล้ว restart |
 | Port 3000 ถูกใช้ | process ค้าง | `pm2 kill && pm2 start ecosystem.config.cjs` |
-| Upload logo ไม่ได้ | permission | `sudo chown -R $USER:$USER /home/$USER/agm/public/uploads` |
+| Upload logo ไม่ได้ | permission | `sudo chown -R $USER:$USER /var/www/agm/public/uploads` |
 
 ### Backup Database:
 
@@ -597,7 +599,7 @@ sudo journalctl -u nginx -f
 # ถ้า SQL Server อยู่บน Ubuntu
 # สำรองข้อมูลก่อนวันประชุม
 sqlcmd -S localhost -U sa -P 'YourPassword' \
-  -Q "BACKUP DATABASE eagm_db TO DISK='/home/$USER/backup/eagm_$(date +%Y%m%d).bak'"
+  -Q "BACKUP DATABASE eagm_db TO DISK='/var/www/agm/backup/eagm_$(date +%Y%m%d).bak'"
 
 # ถ้า SQL Server อยู่บน Windows
 # ใช้ SSMS → Tasks → Backup
@@ -614,7 +616,8 @@ curl -fsSL https://deb.nodesource.com/setup_24.x | sudo -E bash -
 sudo apt-get install -y nodejs git nginx
 
 # 2. Clone & Setup
-git clone https://github.com/iEel/agm.git && cd agm
+cd /var/www && sudo mkdir -p agm && sudo chown $USER:$USER agm
+git clone https://github.com/iEel/agm.git agm && cd agm
 npm install
 cp .env.example .env && nano .env        # แก้ .env
 npx prisma generate
