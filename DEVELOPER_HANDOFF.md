@@ -926,3 +926,16 @@ proxy_buffering off;
 | Excel Audit Log | `GET /api/reports/audit-export` | SUPER_ADMIN |
 | PDF รายงานรวม | Client-side (`@react-pdf/renderer`) | ทุก role |
 | ข้อมูลรายงาน (JSON) | `GET /api/reports/pdf-data` | ทุก role |
+
+### 🔒 Security Headers
+
+**แก้ไข:** `next.config.ts`
+
+เพิ่ม response headers ป้องกันการโจมตีทุก route:
+
+| Header | ค่า | ป้องกัน |
+|--------|-----|---------|
+| `X-Frame-Options` | `DENY` | Clickjacking (ห้ามฝังใน iframe) |
+| `X-Content-Type-Options` | `nosniff` | MIME type sniffing |
+| `Referrer-Policy` | `strict-origin-when-cross-origin` | URL leakage |
+
