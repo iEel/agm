@@ -169,9 +169,11 @@ grep AUTH_SECRET .env
 
 ## 6. Build & ทดสอบ
 
+### กรณี A: ใช้ Database ที่มีอยู่แล้ว (เช่น DB เดียวกับ dev)
+
 ```bash
-# 1. Push schema ขึ้น DB (สร้าง tables — ทำครั้งแรกเท่านั้น)
-npx prisma db push
+# 1. Generate Prisma Client
+npx prisma generate
 
 # 2. Build production
 npm run build
@@ -180,11 +182,31 @@ npm run build
 npm run start
 # เปิด http://<server-ip>:3000 ในเบราว์เซอร์
 
-# 4. Seed ข้อมูลเริ่มต้น (ทำครั้งแรกเท่านั้น)
+# 4. กด Ctrl+C เพื่อหยุด (จะไปใช้ PM2 แทน)
+```
+
+> 💡 ไม่ต้องรัน `prisma db push` และ `api/seed` เพราะ tables + ข้อมูลมีอยู่ใน DB แล้ว
+
+### กรณี B: ใช้ Database ใหม่เปล่าๆ
+
+```bash
+# 1. Push schema ขึ้น DB (สร้าง tables)
+npx prisma db push
+
+# 2. Generate Prisma Client
+npx prisma generate
+
+# 3. Build production
+npm run build
+
+# 4. ทดสอบ start
+npm run start
+
+# 5. Seed ข้อมูลเริ่มต้น (สร้าง admin user)
 curl -X POST http://localhost:3000/api/seed
 # จะสร้าง admin user: admin / admin1234
 
-# 5. กด Ctrl+C เพื่อหยุด (จะไปใช้ PM2 แทน)
+# 6. กด Ctrl+C เพื่อหยุด (จะไปใช้ PM2 แทน)
 ```
 
 ---
@@ -609,8 +631,7 @@ sqlcmd -S localhost -U sa -P 'YourPassword' \
 
 ## สรุปขั้นตอนทั้งหมด (Quick Reference)
 
-```bash
-# === Ubuntu Server Setup ===
+# === กรณี A: ใช้ DB ที่มีอยู่แล้ว ===
 # 1. Install Node.js
 curl -fsSL https://deb.nodesource.com/setup_24.x | sudo -E bash -
 sudo apt-get install -y nodejs git nginx
@@ -619,9 +640,8 @@ sudo apt-get install -y nodejs git nginx
 cd /var/www && sudo mkdir -p agm && sudo chown $USER:$USER agm
 git clone https://github.com/iEel/agm.git agm && cd agm
 npm install
-cp .env.example .env && nano .env        # แก้ .env
+cp .env.example .env && nano .env        # แก้ .env (DATABASE_URL, AUTH_SECRET)
 npx prisma generate
-npx prisma db push
 
 # 3. Build & Start
 npm run build
@@ -629,29 +649,15 @@ sudo npm install -g pm2
 pm2 start ecosystem.config.cjs
 pm2 save && pm2 startup
 
-# 4. Nginx
-sudo nano /etc/nginx/sites-available/eagm   # ใส่ config
-sudo ln -sf /etc/nginx/sites-available/eagm /etc/nginx/sites-enabled/
-sudo rm -f /etc/nginx/sites-enabled/default
-sudo nginx -t && sudo systemctl restart nginx
-
-# 5. Cloudflare Tunnel
-curl -L https://github.com/cloudflare/cloudflared/releases/latest/download/cloudflared-linux-amd64.deb -o cloudflared.deb
-sudo dpkg -i cloudflared.deb
-cloudflared tunnel login
-cloudflared tunnel create eagm
-nano ~/.cloudflared/config.yml              # ใส่ config
-cloudflared tunnel route dns eagm agm.yourdomain.com
-sudo cloudflared service install
-sudo systemctl enable cloudflared && sudo systemctl start cloudflared
-
-# 6. Seed admin
-curl -X POST http://localhost:3000/api/seed
-
-# 7. Firewall
-sudo ufw allow ssh
-sudo ufw enable
+# 4. Nginx + Cloudflare Tunnel (ดูขั้นตอนข้างบน)
 
 # 🎉 เข้าได้ที่ https://agm.yourdomain.com
+```
+
+```bash
+# === กรณี B: ใช้ DB ใหม่เปล่าๆ ===
+# ทำเหมือนกรณี A แต่เพิ่ม 2 คำสั่งนี้:
+npx prisma db push                           # สร้าง tables
+curl -X POST http://localhost:3000/api/seed   # สร้าง admin user
 # Login: admin / admin1234
 ```
