@@ -70,10 +70,10 @@ async function handlePost(req: NextRequest, user: AuthUser) {
     },
   });
 
-  // 7. Reset agenda statuses back to PENDING
+  // 7. Reset agenda statuses back to PENDING + clear MC scripts
   await prisma.agenda.updateMany({
     where: { meetingId: eventId },
-    data: { status: 'PENDING' },
+    data: { status: 'PENDING', mcScript: null },
   });
 
   // 8. Reset event status to DRAFT
