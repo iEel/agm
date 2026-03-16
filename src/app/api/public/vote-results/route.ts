@@ -76,7 +76,10 @@ export async function GET(req: NextRequest) {
     let additionalShares = BigInt(0);
 
     if (agenda.orderNo > 1) {
-      const prevAgenda = allAgendas.find(a => a.orderNo === agenda.orderNo - 1);
+      // Find the closest previous agenda (may not be exactly orderNo - 1 if gaps exist)
+      const prevAgenda = [...allAgendas]
+        .filter(a => a.orderNo < agenda.orderNo)
+        .sort((a, b) => b.orderNo - a.orderNo)[0];
       if (prevAgenda) {
         const prevSnapshot = await prisma.voteSnapshot.findUnique({
           where: { agendaId: prevAgenda.id },
