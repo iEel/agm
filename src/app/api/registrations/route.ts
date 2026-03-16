@@ -41,11 +41,24 @@ async function handleGet(req: NextRequest, user: AuthUser) {
   const total = await prisma.registration.count({ where });
 
   // Quorum calculation
-  const quorumData = await prisma.registration.aggregate({
-    where: { meetingId: activeEvent.id, checkoutAt: null },
-    _count: true,
-    _sum: { shares: true },
-  });
+  const quorumWhere = { meetingId: activeEvent.id, checkoutAt: null };
+  const [quorumData, selfData, proxyData] = await Promise.all([
+    prisma.registration.aggregate({
+      where: quorumWhere,
+      _count: true,
+      _sum: { shares: true },
+    }),
+    prisma.registration.aggregate({
+      where: { ...quorumWhere, attendeeType: 'SELF' },
+      _count: true,
+      _sum: { shares: true },
+    }),
+    prisma.registration.aggregate({
+      where: { ...quorumWhere, attendeeType: { not: 'SELF' } },
+      _count: true,
+      _sum: { shares: true },
+    }),
+  ]);
 
   return NextResponse.json({
     registrations: registrations.map(r => ({
@@ -61,6 +74,10 @@ async function handleGet(req: NextRequest, user: AuthUser) {
       percentage: activeEvent.totalShares > 0
         ? ((Number(quorumData._sum.shares || 0) / Number(activeEvent.totalShares)) * 100).toFixed(2)
         : '0',
+      selfCount: selfData._count || 0,
+      selfShares: selfData._sum.shares?.toString() || '0',
+      proxyCount: proxyData._count || 0,
+      proxyShares: proxyData._sum.shares?.toString() || '0',
     },
   });
 }

@@ -50,6 +50,10 @@ interface Quorum {
   shares: string;
   totalShares: string;
   percentage: string;
+  selfCount: number;
+  selfShares: string;
+  proxyCount: number;
+  proxyShares: string;
 }
 
 interface VoteResults {
@@ -360,6 +364,36 @@ export default function MCPage() {
               {quorumPct >= 33.33 ? '✅ ครบองค์ประชุม' : '⏳ ยังไม่ครบองค์ประชุม (ต้องการ ≥33.33%)'}
             </p>
             <p className="text-[10px] text-text-muted">100%</p>
+          </div>
+
+          {/* Breakdown: SELF vs PROXY */}
+          <div className="grid grid-cols-2 gap-3 mt-3 pt-3 border-t border-border/30">
+            <div className="flex items-center gap-3 p-2.5 rounded-xl bg-blue-500/8">
+              <div className="w-8 h-8 rounded-lg bg-blue-500/15 flex items-center justify-center flex-shrink-0">
+                <Users className="w-4 h-4 text-blue-400" />
+              </div>
+              <div>
+                <p className="text-[10px] text-text-muted">มาด้วยตนเอง</p>
+                <p className="text-sm font-bold text-text-primary">
+                  {quorum.selfCount} <span className="text-[10px] font-normal text-text-muted">ราย</span>
+                  <span className="text-text-muted mx-1">/</span>
+                  {fmtShares(quorum.selfShares)} <span className="text-[10px] font-normal text-text-muted">หุ้น</span>
+                </p>
+              </div>
+            </div>
+            <div className="flex items-center gap-3 p-2.5 rounded-xl bg-violet-500/8">
+              <div className="w-8 h-8 rounded-lg bg-violet-500/15 flex items-center justify-center flex-shrink-0">
+                <UserPlus className="w-4 h-4 text-violet-400" />
+              </div>
+              <div>
+                <p className="text-[10px] text-text-muted">รับมอบฉันทะ</p>
+                <p className="text-sm font-bold text-text-primary">
+                  {quorum.proxyCount} <span className="text-[10px] font-normal text-text-muted">ราย</span>
+                  <span className="text-text-muted mx-1">/</span>
+                  {fmtShares(quorum.proxyShares)} <span className="text-[10px] font-normal text-text-muted">หุ้น</span>
+                </p>
+              </div>
+            </div>
           </div>
         </div>
       )}
