@@ -282,20 +282,20 @@ export default function VoteResultsDisplayPage() {
                         </thead>
                         <tbody>
                           <tr>
-                            <td className="py-2 px-4 font-bold">เห็นด้วย <span className="text-gray-500 font-normal">(Approved)</span></td>
-                            <td className="py-2 px-4 text-right text-xl font-bold">{fmt(sub.approve)}</td>
-                            <td className="py-2 px-4 text-right text-xl font-bold text-emerald-700">{sub.approvePercent}</td>
+                            <td className="py-2 px-4 text-lg font-bold">เห็นด้วย <span className="text-gray-500 font-normal">(Approved)</span></td>
+                            <td className="py-2 px-4 text-right text-3xl font-bold">{fmt(sub.approve)}</td>
+                            <td className="py-2 px-4 text-right text-3xl font-bold text-emerald-700">{sub.approvePercent}</td>
                           </tr>
                           <tr>
-                            <td className="py-2 px-4 font-bold">ไม่เห็นด้วย <span className="text-gray-500 font-normal">(Disapproved)</span></td>
-                            <td className="py-2 px-4 text-right text-xl font-bold">{fmt(sub.disapprove)}</td>
-                            <td className="py-2 px-4 text-right text-xl font-bold">{sub.disapprovePercent}</td>
+                            <td className="py-2 px-4 text-base font-bold">ไม่เห็นด้วย <span className="text-gray-500 font-normal">(Disapproved)</span></td>
+                            <td className="py-2 px-4 text-right text-2xl font-bold">{fmt(sub.disapprove)}</td>
+                            <td className="py-2 px-4 text-right text-2xl font-bold">{sub.disapprovePercent}</td>
                           </tr>
                           <tr><td colSpan={3} className="border-t-2 border-gray-800 h-0 p-0"></td></tr>
                           <tr className="bg-gray-50">
-                            <td className="py-2 px-4 font-bold">รวม <span className="text-gray-500 font-normal">(Total)</span></td>
-                            <td className="py-2 px-4 text-right text-xl font-black">{fmt(String(BigInt(sub.approve) + BigInt(sub.disapprove)))}</td>
-                            <td className="py-2 px-4 text-right text-xl font-black">
+                            <td className="py-2 px-4 text-lg font-bold">รวม <span className="text-gray-500 font-normal">(Total)</span></td>
+                            <td className="py-2 px-4 text-right text-3xl font-black">{fmt(String(BigInt(sub.approve) + BigInt(sub.disapprove)))}</td>
+                            <td className="py-2 px-4 text-right text-3xl font-black">
                               {(() => {
                                 const total = BigInt(sub.approve) + BigInt(sub.disapprove);
                                 return total > BigInt(0) ? '100.0000' : '0.0000';
@@ -303,13 +303,13 @@ export default function VoteResultsDisplayPage() {
                             </td>
                           </tr>
                           <tr>
-                            <td className="py-2 px-4 font-bold">งดออกเสียง <span className="text-gray-500 font-normal">(Abstained)</span></td>
-                            <td className="py-2 px-4 text-right text-xl font-bold">{fmt(sub.abstain)}</td>
+                            <td className="py-2 px-4 text-base font-bold">งดออกเสียง <span className="text-gray-500 font-normal">(Abstained)</span></td>
+                            <td className="py-2 px-4 text-right text-2xl font-bold">{fmt(sub.abstain)}</td>
                             <td className="py-2 px-4 text-right"></td>
                           </tr>
                           <tr>
-                            <td className="py-2 px-4 font-bold">บัตรเสีย <span className="text-gray-500 font-normal">(Voided Ballot)</span></td>
-                            <td className="py-2 px-4 text-right text-xl font-bold">{fmt(sub.voided)}</td>
+                            <td className="py-2 px-4 text-base font-bold">บัตรเสีย <span className="text-gray-500 font-normal">(Voided Ballot)</span></td>
+                            <td className="py-2 px-4 text-right text-2xl font-bold">{fmt(sub.voided)}</td>
                             <td className="py-2 px-4 text-right"></td>
                           </tr>
                         </tbody>
