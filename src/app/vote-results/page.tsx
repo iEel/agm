@@ -314,11 +314,6 @@ export default function VoteResultsDisplayPage() {
                           </tr>
                         </tbody>
                       </table>
-                      <div className={`py-2 px-4 rounded-lg text-sm font-bold ${
-                        sub.passed ? 'bg-emerald-50 text-emerald-700' : 'bg-red-50 text-red-700'
-                      }`}>
-                        ผลการลงคะแนน: {sub.result}
-                      </div>
                     </div>
                   ))
                 ) : (
