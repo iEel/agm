@@ -76,21 +76,23 @@ export async function GET(req: NextRequest) {
     let additionalShares = BigInt(0);
 
     if (agenda.orderNo > 1) {
-      // Find the closest previous agenda (may not be exactly orderNo - 1 if gaps exist)
-      const prevAgenda = [...allAgendas]
+      // Find the closest previous agenda that has a snapshot
+      // (INFO agendas are skipped since they never create snapshots)
+      const prevAgendas = [...allAgendas]
         .filter(a => a.orderNo < agenda.orderNo)
-        .sort((a, b) => b.orderNo - a.orderNo)[0];
-      if (prevAgenda) {
+        .sort((a, b) => b.orderNo - a.orderNo);
+      
+      for (const candidate of prevAgendas) {
         const prevSnapshot = await prisma.voteSnapshot.findUnique({
-          where: { agendaId: prevAgenda.id },
+          where: { agendaId: candidate.id },
           select: { totalAttendees: true, eligibleShares: true },
         });
         if (prevSnapshot) {
           additionalCount = totalCount - prevSnapshot.totalAttendees;
           additionalShares = totalShares - prevSnapshot.eligibleShares;
-          // Ensure non-negative
           if (additionalCount < 0) additionalCount = 0;
           if (additionalShares < BigInt(0)) additionalShares = BigInt(0);
+          break;
         }
       }
     }
