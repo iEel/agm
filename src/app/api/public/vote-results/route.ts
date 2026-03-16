@@ -224,17 +224,21 @@ export async function GET(req: NextRequest) {
     });
     const mainResults = computeResults(mainVotes, agenda.resolutionType, attendeeShares);
 
-    // Get open/close timestamps from audit logs
-    const openLog = await prisma.auditLog.findFirst({
-      where: { action: 'AGENDA_OPEN', entityId: agenda.id },
-      orderBy: { createdAt: 'desc' },
-      select: { createdAt: true },
-    });
-    const closeLog = await prisma.auditLog.findFirst({
-      where: { action: 'AGENDA_CLOSED', entityId: agenda.id },
-      orderBy: { createdAt: 'desc' },
-      select: { createdAt: true },
-    });
+    // Get open/close timestamps from audit logs (only if agenda has been opened)
+    let openLog = null;
+    let closeLog = null;
+    if (agenda.status !== 'PENDING') {
+      openLog = await prisma.auditLog.findFirst({
+        where: { action: 'AGENDA_OPEN', entityId: agenda.id },
+        orderBy: { createdAt: 'desc' },
+        select: { createdAt: true },
+      });
+      closeLog = await prisma.auditLog.findFirst({
+        where: { action: 'AGENDA_CLOSED', entityId: agenda.id },
+        orderBy: { createdAt: 'desc' },
+        select: { createdAt: true },
+      });
+    }
 
     return NextResponse.json({
       company: {
