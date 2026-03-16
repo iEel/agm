@@ -984,3 +984,26 @@ API ใช้ 3 parallel `aggregate()` queries (total, SELF, not-SELF)
 - เปลี่ยนทุก path จาก `/home/$USER/agm` → `/var/www/agm`
 - เพิ่ม `sudo mkdir -p agm && sudo chown $USER:$USER agm` สำหรับ `/var/www/`
 - แยกคำสั่ง **กรณี A** (DB มีอยู่แล้ว) vs **กรณี B** (DB ใหม่) ทั้งในหัวข้อ Build และ Quick Reference
+
+### 🗳️ หน้าจอผลลงคะแนน — แก้ประเภทเลือกตั้งกรรมการ
+
+**แก้ไข:** `src/app/vote-results/page.tsx`
+
+- เพิ่มรายการ **รวม (Total)**, **งดออกเสียง (Abstained)**, **บัตรเสีย (Voided Ballot)** ให้ครบเหมือนวาระปกติ
+- เพิ่ม label ภาษาอังกฤษ (Approved, Disapproved, Total, Abstained, Voided Ballot)
+- ปรับ font size ให้ตรงกับวาระปกติ (`text-3xl` สำหรับเห็นด้วย/รวม, `text-2xl` สำหรับอื่นๆ)
+- ลบ "ผลการลงคะแนน: อนุมัติ" ที่ซ้ำซ้อนใต้ตารางแต่ละ candidate
+
+### 🔢 คำนวณ "ผู้เข้าร่วมเพิ่ม" — แก้ Bug ข้ามวาระ INFO
+
+**แก้ไข:** `src/app/api/public/vote-results/route.ts`
+
+**ปัญหา:** ถ้าวาระก่อนหน้าเป็น INFO (แจ้งเพื่อทราบ) ไม่มี snapshot → ระบบหา snapshot ไม่เจอ → "เพิ่ม" แสดงเป็น 0
+
+**แก้ไข:** เปลี่ยนจากหาวาระก่อนหน้า 1 ตัว → **วนหาย้อนกลับ** จนเจอวาระที่มี snapshot
+
+```
+วาระ 1 (MAJORITY) → ปิด → snapshot ✅
+วาระ 2 (INFO)     → ข้าม → ไม่มี snapshot
+วาระ 3 (MAJORITY) → เปิด → หา snapshot ← ข้าม 2, ใช้ snapshot วาระ 1 ✅
+```
