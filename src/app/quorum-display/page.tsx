@@ -20,6 +20,13 @@ interface QuorumData {
 export default function QuorumDisplayPage() {
   const [data, setData] = useState<QuorumData | null>(null);
   const [error, setError] = useState('');
+  const [now, setNow] = useState(new Date());
+
+  // Live clock — ticks every second
+  useEffect(() => {
+    const timer = setInterval(() => setNow(new Date()), 1000);
+    return () => clearInterval(timer);
+  }, []);
 
   const fetchData = useCallback(async () => {
     try {
@@ -121,21 +128,22 @@ export default function QuorumDisplayPage() {
         </h2>
       </div>
 
-      {/* Timestamp */}
+      {/* Timestamp — live clock */}
       <div className="bg-gray-50 border-b border-gray-200 py-2 text-center">
         <p className="text-sm text-gray-600">
           ข้อมูลการลงทะเบียน ณ เวลาปัจจุบัน&ensp;
           <strong className="text-gray-800">
             {(() => {
-              const d = new Date(data.timestamp);
-              const dd = String(d.getDate()).padStart(2, '0');
-              const mm = String(d.getMonth() + 1).padStart(2, '0');
-              const yyyy = d.getFullYear() + 543;
+              const dd = String(now.getDate()).padStart(2, '0');
+              const mm = String(now.getMonth() + 1).padStart(2, '0');
+              const yyyy = now.getFullYear() + 543;
               return `${dd}/${mm}/${yyyy}`;
             })()}
           </strong>
           &ensp;
-          <strong className="text-gray-800">{fmtTime(data.timestamp)}</strong>
+          <strong className="text-gray-800">
+            {now.toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit', second: '2-digit' })}
+          </strong>
         </p>
       </div>
 
