@@ -1,7 +1,7 @@
 # 📋 Developer Handoff — e-AGM & QR Ballot System
 
 > **สถานะ**: Phase 1-10 เสร็จสมบูรณ์ ✅ | FR Audit + State Machine + Ballot Print + MC Screen + SSE Real-time
-> **อัปเดตล่าสุด**: 15 มีนาคม 2569 (v20 — Export Audit Log + Mobile Responsive + Deployment Guide)
+> **อัปเดตล่าสุด**: 16 มีนาคม 2569 (v21 — App Icon + MC Quorum Breakdown + Live Clock + Clear Session Fix)
 
 ---
 
@@ -939,3 +939,48 @@ proxy_buffering off;
 | `X-Content-Type-Options` | `nosniff` | MIME type sniffing |
 | `Referrer-Policy` | `strict-origin-when-cross-origin` | URL leakage |
 
+---
+
+## v21 Changelog (16 มีนาคม 2569)
+
+### 🎨 App Icon & Login Logo
+
+- **ลบ** `src/app/favicon.ico` (Next.js default icon)
+- **แทนที่** PWA icons (`public/icons/icon-192.png`, `icon-512.png`) ด้วย ballot box icon ใหม่
+- **Login page**: เปลี่ยนจาก `QrCode` lucide icon → `Vote` lucide icon (ballot box)
+- **`layout.tsx`**: อัปเดต `icons` metadata ให้ครอบคลุม `shortcut` + ระบุ size/type
+
+### 📊 หน้าจอพิธีกร — แยกประเภทผู้เข้าร่วม
+
+**แก้ไข:** `src/app/api/registrations/route.ts` + `src/app/(dashboard)/mc/page.tsx`
+
+เพิ่มข้อมูลแยกประเภทในส่วนองค์ประชุม:
+
+| ประเภท | ฟิลด์ API | สี UI |
+|--------|-----------|-------|
+| มาด้วยตนเอง | `selfCount`, `selfShares` | 🔵 น้ำเงิน |
+| รับมอบฉันทะ | `proxyCount`, `proxyShares` | 🟣 ม่วง |
+
+API ใช้ 3 parallel `aggregate()` queries (total, SELF, not-SELF)
+
+### 🕐 Live Clock — หน้าองค์ประชุม
+
+**แก้ไข:** `src/app/(dashboard)/quorum/page.tsx` + `src/app/quorum-display/page.tsx`
+
+- เปลี่ยนจาก `data.timestamp` (อัปเดตเฉพาะเมื่อมีข้อมูลใหม่) → **`setInterval` ทุก 1 วินาที**
+- ตัวเลขเวลาเดินตลอดแม้ไม่มีคนลงทะเบียนใหม่
+
+### 🧹 ล้างข้อมูลรอบประชุม — แก้วาระค้าง
+
+**แก้ไข:** `src/app/api/events/[id]/clear/route.ts` + `src/app/api/public/vote-results/route.ts`
+
+- เพิ่ม `mcScript: null` เมื่อ reset agenda status
+- หน้าจอผลลงคะแนน: ไม่ query `AGENDA_OPEN`/`AGENDA_CLOSED` logs เมื่อวาระ status = PENDING → ไม่แสดงเวลาเปิด/ปิดที่ค้างอยู่
+
+### 📦 Deployment — ปรับ path เป็น `/var/www/agm`
+
+**แก้ไข:** `DEPLOYMENT.md`
+
+- เปลี่ยนทุก path จาก `/home/$USER/agm` → `/var/www/agm`
+- เพิ่ม `sudo mkdir -p agm && sudo chown $USER:$USER agm` สำหรับ `/var/www/`
+- แยกคำสั่ง **กรณี A** (DB มีอยู่แล้ว) vs **กรณี B** (DB ใหม่) ทั้งในหัวข้อ Build และ Quick Reference
