@@ -5,7 +5,7 @@ import { useSSE } from '@/lib/use-sse';
 
 interface QuorumData {
   company: { nameTh: string; nameEn: string; logoUrl: string | null };
-  event: { name: string; type: string; date: string; venue: string | null };
+  event: { name: string; type: string; date: string; venue: string | null; status: string; closedAt: string | null };
   self: { count: number; shares: string };
   proxy: { count: number; shares: string };
   total: { count: number; shares: string };
@@ -128,21 +128,28 @@ export default function QuorumDisplayPage() {
         </h2>
       </div>
 
-      {/* Timestamp — live clock */}
+      {/* Timestamp — live clock or frozen */}
       <div className="bg-gray-50 border-b border-gray-200 py-2 text-center">
         <p className="text-sm text-gray-600">
-          ข้อมูลการลงทะเบียน ณ เวลาปัจจุบัน&ensp;
+          {data.event.status === 'CLOSED'
+            ? 'ข้อมูลสรุปองค์ประชุม ณ เวลาปิดการประชุม'
+            : 'ข้อมูลการลงทะเบียน ณ เวลาปัจจุบัน'}
+          &ensp;
           <strong className="text-gray-800">
             {(() => {
-              const dd = String(now.getDate()).padStart(2, '0');
-              const mm = String(now.getMonth() + 1).padStart(2, '0');
-              const yyyy = now.getFullYear() + 543;
+              const d = data.event.status === 'CLOSED' && data.event.closedAt ? new Date(data.event.closedAt) : now;
+              const dd = String(d.getDate()).padStart(2, '0');
+              const mm = String(d.getMonth() + 1).padStart(2, '0');
+              const yyyy = d.getFullYear() + 543;
               return `${dd}/${mm}/${yyyy}`;
             })()}
           </strong>
           &ensp;
           <strong className="text-gray-800">
-            {now.toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit', second: '2-digit' })}
+            {(() => {
+              const d = data.event.status === 'CLOSED' && data.event.closedAt ? new Date(data.event.closedAt) : now;
+              return d.toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+            })()}
           </strong>
         </p>
       </div>

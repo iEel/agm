@@ -15,12 +15,36 @@ async function handleGet(_req: Request, _user: AuthUser) {
     return NextResponse.json({ error: 'ไม่มีงานประชุมที่ Active' }, { status: 400 });
   }
 
-  // Total shareholders for this meeting
+  const companyInfo = {
+    nameTh: activeEvent.company.nameTh,
+    nameEn: activeEvent.company.name,
+    logoUrl: activeEvent.company.logoUrl,
+  };
+  const eventInfo = {
+    name: activeEvent.name,
+    type: activeEvent.type,
+    date: activeEvent.date.toISOString(),
+    venue: activeEvent.venue,
+    status: activeEvent.status,
+    closedAt: activeEvent.closedAt?.toISOString() || null,
+  };
+
+  // If event is CLOSED and snapshot exists, return frozen data
+  if (activeEvent.status === 'CLOSED' && activeEvent.quorumSnapshot) {
+    const snapshot = JSON.parse(activeEvent.quorumSnapshot);
+    return NextResponse.json({
+      company: companyInfo,
+      event: eventInfo,
+      ...snapshot,
+      timestamp: activeEvent.closedAt?.toISOString() || new Date().toISOString(),
+    });
+  }
+
+  // Live data (event not closed)
   const totalShareholders = await prisma.shareholder.count({
     where: { meetingId: activeEvent.id },
   });
 
-  // Breakdown by attendee type — only those currently present (not checked out)
   const selfData = await prisma.registration.aggregate({
     where: { meetingId: activeEvent.id, attendeeType: 'SELF', checkoutAt: null },
     _count: true,
@@ -45,25 +69,14 @@ async function handleGet(_req: Request, _user: AuthUser) {
     ? (Number(totalShares) / Number(totalPaidUpShares) * 100).toFixed(4)
     : '0';
 
-  // Quorum rules (Thai Public Company Act):
-  // ≥ 25 persons OR ≥ half of total shareholders, AND shares ≥ 1/3 of total
   const minPersons = Math.min(25, Math.ceil(totalShareholders / 2));
   const personsOk = totalCount >= minPersons;
-  const sharesOk = totalShares * BigInt(3) >= totalPaidUpShares; // shares >= 1/3
+  const sharesOk = totalShares * BigInt(3) >= totalPaidUpShares;
   const quorumMet = personsOk && sharesOk;
 
   return NextResponse.json({
-    company: {
-      nameTh: activeEvent.company.nameTh,
-      nameEn: activeEvent.company.name,
-      logoUrl: activeEvent.company.logoUrl,
-    },
-    event: {
-      name: activeEvent.name,
-      type: activeEvent.type,
-      date: activeEvent.date.toISOString(),
-      venue: activeEvent.venue,
-    },
+    company: companyInfo,
+    event: eventInfo,
     self: { count: selfCount, shares: selfShares.toString() },
     proxy: { count: proxyCount, shares: proxyShares.toString() },
     total: { count: totalCount, shares: totalShares.toString() },

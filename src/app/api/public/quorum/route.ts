@@ -15,6 +15,32 @@ export async function GET() {
       return NextResponse.json({ error: 'ไม่มีงานประชุมที่ Active' }, { status: 400 });
     }
 
+    const companyInfo = {
+      nameTh: activeEvent.company.nameTh,
+      nameEn: activeEvent.company.name,
+      logoUrl: activeEvent.company.logoUrl,
+    };
+    const eventInfo = {
+      name: activeEvent.name,
+      type: activeEvent.type,
+      date: activeEvent.date.toISOString(),
+      venue: activeEvent.venue,
+      status: activeEvent.status,
+      closedAt: activeEvent.closedAt?.toISOString() || null,
+    };
+
+    // If event is CLOSED and snapshot exists, return frozen data
+    if (activeEvent.status === 'CLOSED' && activeEvent.quorumSnapshot) {
+      const snapshot = JSON.parse(activeEvent.quorumSnapshot);
+      return NextResponse.json({
+        company: companyInfo,
+        event: eventInfo,
+        ...snapshot,
+        timestamp: activeEvent.closedAt?.toISOString() || new Date().toISOString(),
+      });
+    }
+
+    // Live data (event not closed)
     const totalShareholders = await prisma.shareholder.count({
       where: { meetingId: activeEvent.id },
     });
@@ -49,17 +75,8 @@ export async function GET() {
     const quorumMet = personsOk && sharesOk;
 
     return NextResponse.json({
-      company: {
-        nameTh: activeEvent.company.nameTh,
-        nameEn: activeEvent.company.name,
-        logoUrl: activeEvent.company.logoUrl,
-      },
-      event: {
-        name: activeEvent.name,
-        type: activeEvent.type,
-        date: activeEvent.date.toISOString(),
-        venue: activeEvent.venue,
-      },
+      company: companyInfo,
+      event: eventInfo,
       self: { count: selfCount, shares: selfShares.toString() },
       proxy: { count: proxyCount, shares: proxyShares.toString() },
       total: { count: totalCount, shares: totalShares.toString() },

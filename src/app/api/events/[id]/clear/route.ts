@@ -76,10 +76,10 @@ async function handlePost(req: NextRequest, user: AuthUser) {
     data: { status: 'PENDING', mcScript: null },
   });
 
-  // 8. Reset event status to DRAFT
+  // 8. Reset event status to DRAFT + clear quorum snapshot
   await prisma.event.update({
     where: { id: eventId },
-    data: { status: 'DRAFT' },
+    data: { status: 'DRAFT', closedAt: null, quorumSnapshot: null },
   });
 
   if (level === 'all') {

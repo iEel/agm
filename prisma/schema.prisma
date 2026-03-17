@@ -51,6 +51,8 @@ model Event {
   totalShares BigInt   @default(0)
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
+  closedAt       DateTime?
+  quorumSnapshot String?   @db.NVarChar(Max)
 
   shareholders  Shareholder[]
   agendas       Agenda[]
