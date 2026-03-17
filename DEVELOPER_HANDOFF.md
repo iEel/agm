@@ -1,7 +1,7 @@
 # 📋 Developer Handoff — e-AGM & QR Ballot System
 
 > **สถานะ**: Phase 1-10 เสร็จสมบูรณ์ ✅ | FR Audit + State Machine + Ballot Print + MC Screen + SSE Real-time
-> **อัปเดตล่าสุด**: 16 มีนาคม 2569 (v21 — App Icon + MC Quorum Breakdown + Live Clock + Clear Session Fix)
+> **อัปเดตล่าสุด**: 17 มีนาคม 2569 (v22 — Quorum Snapshot on Meeting Close)
 
 ---
 
@@ -1007,3 +1007,32 @@ API ใช้ 3 parallel `aggregate()` queries (total, SELF, not-SELF)
 วาระ 2 (INFO)     → ข้าม → ไม่มี snapshot
 วาระ 3 (MAJORITY) → เปิด → หา snapshot ← ข้าม 2, ใช้ snapshot วาระ 1 ✅
 ```
+
+---
+
+## v22 Changelog (17 มีนาคม 2569)
+
+### 📸 Quorum Snapshot — Freeze ข้อมูลองค์ประชุมเมื่อปิดการประชุม
+
+**แก้ไข 6 ไฟล์:**
+
+| ไฟล์ | การเปลี่ยนแปลง |
+|-------|----------|
+| `prisma/schema.prisma` | เพิ่ม `closedAt DateTime?` + `quorumSnapshot String?` ใน Event model |
+| `src/app/api/events/[id]/route.ts` | status → CLOSED → สร้าง snapshot + บันทึก closedAt |
+| `src/app/api/registrations/quorum-summary/route.ts` | CLOSED → return snapshot แทน live query |
+| `src/app/api/public/quorum/route.ts` | CLOSED → return snapshot แทน live query |
+| `src/app/(dashboard)/quorum/page.tsx` | สลับ wording + เวลาหยุดนิ่ง |
+| `src/app/quorum-display/page.tsx` | สลับ wording + เวลาหยุดนิ่ง |
+| `src/app/api/events/[id]/clear/route.ts` | reset closedAt + quorumSnapshot เมื่อ clear |
+
+**พฤติกรรมตามสถานะ:**
+
+| สถานะ Event | Wording หน้าจอองค์ประชุม | เวลา | ข้อมูล |
+|------------|---------------------|------|--------|
+| REGISTRATION / VOTING | "ข้อมูลการลงทะเบียน ณ เวลาปัจจุบัน" | เดิน real-time | Live query |
+| CLOSED | "ข้อมูลสรุปองค์ประชุม ณ เวลาปิดการประชุม" | หยุดนิ่ง (closedAt) | Frozen snapshot |
+
+**ประโยชน์:**
+- พิธีกรเปิดหน้าจอขึ้นโปรเจคเตอร์ได้เลย ตัวเลขไม่ขยับ
+- ดูย้อนหลังแสดงข้อมูลเดิมเป๊ะๆ ใช้เป็นหลักฐาน/รายงานได้
