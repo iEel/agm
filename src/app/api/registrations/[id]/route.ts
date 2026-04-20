@@ -15,6 +15,18 @@ async function handlePut(req: NextRequest, user: AuthUser) {
   }
 
   if (action === 'checkout') {
+    // Block checkout if meeting is already closed
+    const event = await prisma.event.findFirst({
+      where: { id: existing.meetingId },
+      select: { status: true },
+    });
+    if (event?.status === 'CLOSED') {
+      return NextResponse.json(
+        { error: 'การประชุมปิดแล้ว ไม่สามารถ Check-out ได้' },
+        { status: 403 }
+      );
+    }
+
     const updated = await prisma.registration.update({
       where: { id },
       data: { checkoutAt: new Date() },

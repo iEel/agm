@@ -17,6 +17,7 @@ export interface SessionContextType {
   activeEvent: {
     id: string;
     name: string;
+    status: string;
     companyName: string;
     companyLogo?: string;
   } | null;

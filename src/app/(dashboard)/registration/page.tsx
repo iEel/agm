@@ -818,7 +818,7 @@ export default function RegistrationPage() {
                           <Printer className="w-3.5 h-3.5" />
                           พิมพ์
                         </button>
-                        {!reg.checkoutAt && (
+                        {!reg.checkoutAt && activeEvent?.status !== 'CLOSED' && (
                           <button
                             onClick={() => handleCheckout(reg.id)}
                             className="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg bg-red-500/10 border border-red-500/20 text-red-400 text-xs font-medium hover:bg-red-500/20 transition-colors cursor-pointer"
@@ -888,7 +888,7 @@ export default function RegistrationPage() {
                     <Printer className="w-3.5 h-3.5" />
                     พิมพ์
                   </button>
-                  {!reg.checkoutAt && (
+                  {!reg.checkoutAt && activeEvent?.status !== 'CLOSED' && (
                     <button
                       onClick={() => handleCheckout(reg.id)}
                       className="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg bg-red-500/10 border border-red-500/20 text-red-400 text-xs font-medium cursor-pointer"

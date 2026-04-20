@@ -40,6 +40,7 @@ export async function GET() {
         ? {
             id: activeEvent.id,
             name: activeEvent.name,
+            status: activeEvent.status,
             companyName: activeEvent.company.nameTh || activeEvent.company.name,
             companyLogo: activeEvent.company.logoUrl,
           }
