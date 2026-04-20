@@ -257,9 +257,8 @@ async function handlePut(req: NextRequest, user: AuthUser) {
       entity: 'Agenda',
       entityId: agendaId,
       details: JSON.stringify({
-        agendaTitle: agenda.titleTh,
-        fromStatus: agenda.status,
-        toStatus: status,
+        วาระ: `${agenda.orderNo}: ${agenda.titleTh}`,
+        สถานะ: `${agenda.status} → ${status}`,
         changedBy: user.username,
       }),
     },

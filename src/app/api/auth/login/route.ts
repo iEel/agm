@@ -70,7 +70,11 @@ export async function POST(request: NextRequest) {
         action: 'LOGIN',
         entity: 'User',
         entityId: user.id,
-        details: JSON.stringify({ username: user.username, role: user.role }),
+        details: JSON.stringify({
+          ชื่อผู้ใช้: user.displayName || user.username,
+          username: user.username,
+          สิทธิ์: user.role,
+        }),
       },
     });
 

@@ -85,6 +85,11 @@ async function handlePost(req: NextRequest, user: AuthUser) {
     },
   });
 
+  const resTypeLabels: Record<string, string> = {
+    INFO: 'แจ้งเพื่อทราบ', MAJORITY: 'เสียงข้างมาก', TWO_THIRDS: '2 ใน 3',
+    SPECIAL: 'มติพิเศษ (75%)', ELECTION: 'เลือกตั้งกรรมการ',
+  };
+
   await prisma.auditLog.create({
     data: {
       userId: user.userId,
@@ -92,9 +97,8 @@ async function handlePost(req: NextRequest, user: AuthUser) {
       entity: 'Agenda',
       entityId: agenda.id,
       details: JSON.stringify({
-        agendaTitle: titleTh,
-        orderNo: finalOrderNo,
-        resolutionType,
+        วาระ: `${finalOrderNo}: ${titleTh}`,
+        ประเภทมติ: resTypeLabels[resolutionType] || resolutionType,
         changedBy: user.username,
       }),
     },

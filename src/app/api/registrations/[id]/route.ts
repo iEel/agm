@@ -27,6 +27,11 @@ async function handlePut(req: NextRequest, user: AuthUser) {
       );
     }
 
+    const shareholder = await prisma.shareholder.findUnique({
+      where: { id: existing.shareholderId },
+      select: { firstNameTh: true, lastNameTh: true, registrationNo: true, shares: true },
+    });
+
     const updated = await prisma.registration.update({
       where: { id },
       data: { checkoutAt: new Date() },
@@ -37,7 +42,11 @@ async function handlePut(req: NextRequest, user: AuthUser) {
         action: 'CHECKOUT',
         entity: 'Registration',
         entityId: id,
-        details: JSON.stringify({ shareholderId: existing.shareholderId, changedBy: user.username }),
+        details: JSON.stringify({
+          ผู้ถือหุ้น: shareholder ? `${shareholder.firstNameTh} ${shareholder.lastNameTh} (${shareholder.registrationNo})` : existing.shareholderId,
+          จำนวนหุ้น: shareholder ? BigInt(shareholder.shares).toLocaleString('th-TH') : '-',
+          changedBy: user.username,
+        }),
       },
     });
     sseManager.broadcast('registration');
@@ -46,6 +55,11 @@ async function handlePut(req: NextRequest, user: AuthUser) {
 
   if (action === 'checkin') {
     // Re-check-in (cancel checkout)
+    const shareholder = await prisma.shareholder.findUnique({
+      where: { id: existing.shareholderId },
+      select: { firstNameTh: true, lastNameTh: true, registrationNo: true, shares: true },
+    });
+
     const updated = await prisma.registration.update({
       where: { id },
       data: { checkoutAt: null },
@@ -56,7 +70,11 @@ async function handlePut(req: NextRequest, user: AuthUser) {
         action: 'RECHECKIN',
         entity: 'Registration',
         entityId: id,
-        details: JSON.stringify({ shareholderId: existing.shareholderId, changedBy: user.username }),
+        details: JSON.stringify({
+          ผู้ถือหุ้น: shareholder ? `${shareholder.firstNameTh} ${shareholder.lastNameTh} (${shareholder.registrationNo})` : existing.shareholderId,
+          จำนวนหุ้น: shareholder ? BigInt(shareholder.shares).toLocaleString('th-TH') : '-',
+          changedBy: user.username,
+        }),
       },
     });
     sseManager.broadcast('registration');
@@ -75,6 +93,11 @@ async function handleDelete(req: NextRequest, user: AuthUser) {
     return NextResponse.json({ error: 'ไม่พบข้อมูล' }, { status: 404 });
   }
 
+  const shareholder = await prisma.shareholder.findUnique({
+    where: { id: existing.shareholderId },
+    select: { firstNameTh: true, lastNameTh: true, registrationNo: true, shares: true },
+  });
+
   await prisma.registration.delete({ where: { id } });
   await prisma.auditLog.create({
     data: {
@@ -82,7 +105,11 @@ async function handleDelete(req: NextRequest, user: AuthUser) {
       action: 'CANCEL_REGISTRATION',
       entity: 'Registration',
       entityId: id,
-      details: JSON.stringify({ shareholderId: existing.shareholderId, changedBy: user.username }),
+      details: JSON.stringify({
+        ผู้ถือหุ้น: shareholder ? `${shareholder.firstNameTh} ${shareholder.lastNameTh} (${shareholder.registrationNo})` : existing.shareholderId,
+        จำนวนหุ้น: shareholder ? BigInt(shareholder.shares).toLocaleString('th-TH') : '-',
+        changedBy: user.username,
+      }),
     },
   });
   sseManager.broadcast('registration');

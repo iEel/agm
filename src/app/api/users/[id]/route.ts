@@ -44,7 +44,12 @@ async function handlePut(req: NextRequest, user: AuthUser) {
       action: 'UPDATE_USER',
       entity: 'User',
       entityId: id,
-      details: JSON.stringify({ displayName: updated.displayName, role: updated.role, isActive: updated.isActive }),
+      details: JSON.stringify({
+        ชื่อผู้ใช้: `${updated.displayName} (${updated.username})`,
+        สิทธิ์: updated.role,
+        สถานะ: updated.isActive ? 'ใช้งาน' : 'ปิดการใช้งาน',
+        changedBy: user.username,
+      }),
     },
   });
 
@@ -74,7 +79,10 @@ async function handleDelete(req: NextRequest, user: AuthUser) {
       action: 'DELETE_USER',
       entity: 'User',
       entityId: id,
-      details: JSON.stringify({ username: existing.username }),
+      details: JSON.stringify({
+        ชื่อผู้ใช้: `${existing.displayName} (${existing.username})`,
+        changedBy: user.username,
+      }),
     },
   });
 

@@ -61,8 +61,7 @@ async function handlePut(
       entity: 'Agenda',
       entityId: id,
       details: JSON.stringify({
-        agendaTitle: updated.titleTh,
-        orderNo: updated.orderNo,
+        วาระ: `${updated.orderNo}: ${updated.titleTh}`,
         changedBy: user.username,
       }),
     },
@@ -101,8 +100,7 @@ async function handleDelete(
       entity: 'Agenda',
       entityId: id,
       details: JSON.stringify({
-        agendaTitle: existing.titleTh,
-        orderNo: existing.orderNo,
+        วาระ: `${existing.orderNo}: ${existing.titleTh}`,
         changedBy: user.username,
       }),
     },

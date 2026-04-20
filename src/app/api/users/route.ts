@@ -73,7 +73,11 @@ async function handlePost(req: NextRequest, user: AuthUser) {
       action: 'CREATE_USER',
       entity: 'User',
       entityId: newUser.id,
-      details: JSON.stringify({ username, displayName, role }),
+      details: JSON.stringify({
+        ชื่อผู้ใช้: `${displayName} (${username})`,
+        สิทธิ์: role,
+        changedBy: user.username,
+      }),
     },
   });
 

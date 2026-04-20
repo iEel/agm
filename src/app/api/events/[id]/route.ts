@@ -104,7 +104,11 @@ async function handlePut(req: NextRequest, user: AuthUser) {
       action: 'UPDATE_EVENT',
       entity: 'Event',
       entityId: id,
-      details: JSON.stringify({ name: updated.name, status: updated.status }),
+      details: JSON.stringify({
+        ชื่องานประชุม: updated.name,
+        สถานะ: existing.status !== updated.status ? `${existing.status} → ${updated.status}` : updated.status,
+        changedBy: user.username,
+      }),
     },
   });
 
@@ -139,7 +143,7 @@ async function handleDelete(req: NextRequest, user: AuthUser) {
       action: 'DELETE_EVENT',
       entity: 'Event',
       entityId: id,
-      details: JSON.stringify({ name: existing.name }),
+      details: JSON.stringify({ ชื่องานประชุม: existing.name, changedBy: user.username }),
     },
   });
 
