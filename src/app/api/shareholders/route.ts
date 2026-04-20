@@ -34,7 +34,7 @@ async function handleGet(req: NextRequest, user: AuthUser) {
     ];
   }
 
-  const [shareholders, total] = await Promise.all([
+  const [shareholders, total, sharesAgg] = await Promise.all([
     prisma.shareholder.findMany({
       where,
       orderBy: { registrationNo: 'asc' },
@@ -42,7 +42,14 @@ async function handleGet(req: NextRequest, user: AuthUser) {
       take: limit,
     }),
     prisma.shareholder.count({ where }),
+    prisma.shareholder.aggregate({
+      where: { companyId: activeEvent.companyId, meetingId: activeEvent.id },
+      _sum: { shares: true },
+      _count: true,
+    }),
   ]);
+
+  const sumShares = sharesAgg._sum.shares || BigInt(0);
 
   return NextResponse.json({
     shareholders: shareholders.map(s => ({ ...s, shares: s.shares.toString() })),
@@ -51,6 +58,12 @@ async function handleGet(req: NextRequest, user: AuthUser) {
       limit,
       total,
       totalPages: Math.ceil(total / limit),
+    },
+    summary: {
+      totalShareholders: sharesAgg._count,
+      sumShares: sumShares.toString(),
+      eventTotalShares: activeEvent.totalShares.toString(),
+      exceeded: sumShares > activeEvent.totalShares,
     },
   });
 }

@@ -10,6 +10,7 @@ import {
   Edit3,
   Trash2,
   AlertCircle,
+  AlertTriangle,
   CheckCircle2,
   XCircle,
   X,
@@ -18,6 +19,7 @@ import {
   ChevronRight,
   Download,
   Users,
+  BarChart3,
 } from 'lucide-react';
 
 interface Shareholder {
@@ -44,6 +46,7 @@ export default function ShareholderPage() {
   const { activeEvent } = useSession();
   const [shareholders, setShareholders] = useState<Shareholder[]>([]);
   const [pagination, setPagination] = useState<Pagination>({ page: 1, limit: 20, total: 0, totalPages: 0 });
+  const [summary, setSummary] = useState<{ totalShareholders: number; sumShares: string; eventTotalShares: string; exceeded: boolean } | null>(null);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
   const [showModal, setShowModal] = useState(false);
@@ -89,6 +92,7 @@ export default function ShareholderPage() {
       const data = await res.json();
       setShareholders(data.shareholders || []);
       setPagination(data.pagination);
+      if (data.summary) setSummary(data.summary);
     } catch {
       setError('ไม่สามารถโหลดข้อมูลได้');
     } finally {
@@ -293,6 +297,66 @@ export default function ShareholderPage() {
           )}
         </div>
       </div>
+
+      {/* Share Summary Bar */}
+      {summary && summary.eventTotalShares !== '0' && (
+        <div className={`glass-card p-4 ${
+          summary.exceeded ? 'border-l-4 border-l-amber-500' : ''
+        }`}>
+          <div className="flex items-center justify-between mb-2">
+            <p className="text-sm font-semibold text-text-secondary flex items-center gap-2">
+              <BarChart3 className="w-4 h-4" />
+              สรุปจำนวนหุ้น
+            </p>
+            {summary.exceeded ? (
+              <span className="flex items-center gap-1 px-2 py-0.5 rounded-full bg-amber-500/15 text-amber-400 text-[10px] font-bold">
+                <AlertTriangle className="w-3 h-3" />
+                เกินจำนวนที่ตั้งไว้
+              </span>
+            ) : (
+              <span className="flex items-center gap-1 px-2 py-0.5 rounded-full bg-emerald-500/15 text-emerald-400 text-[10px] font-bold">
+                <CheckCircle2 className="w-3 h-3" />
+                ปกติ
+              </span>
+            )}
+          </div>
+          <div className="flex items-center gap-4 text-xs">
+            <div>
+              <span className="text-text-muted">หุ้นรวมผู้ถือหุ้น: </span>
+              <span className={`font-bold text-sm ${summary.exceeded ? 'text-amber-400' : 'text-text-primary'}`}>
+                {BigInt(summary.sumShares).toLocaleString('th-TH')}
+              </span>
+            </div>
+            <span className="text-text-muted">/</span>
+            <div>
+              <span className="text-text-muted">หุ้นที่ตั้งไว้ในงานประชุม: </span>
+              <span className="font-bold text-sm text-text-primary">
+                {BigInt(summary.eventTotalShares).toLocaleString('th-TH')}
+              </span>
+            </div>
+          </div>
+          {/* Progress bar */}
+          <div className="mt-2 h-2 rounded-full bg-bg-tertiary overflow-hidden">
+            <div
+              className={`h-full rounded-full transition-all duration-500 ${
+                summary.exceeded
+                  ? 'bg-gradient-to-r from-amber-500 to-red-500'
+                  : 'bg-gradient-to-r from-emerald-500 to-cyan-500'
+              }`}
+              style={{ width: `${Math.min(Number(BigInt(summary.sumShares) * BigInt(100) / BigInt(summary.eventTotalShares)), 100)}%` }}
+            />
+          </div>
+          <p className="text-[10px] text-text-muted mt-1 text-right">
+            {(Number(BigInt(summary.sumShares) * BigInt(10000) / BigInt(summary.eventTotalShares)) / 100).toFixed(2)}%
+          </p>
+          {summary.exceeded && (
+            <p className="text-xs text-amber-400/80 mt-1 flex items-center gap-1">
+              <AlertTriangle className="w-3 h-3" />
+              จำนวนหุ้นรวมของผู้ถือหุ้นเกินกว่าจำนวนหุ้นที่ตั้งไว้ในงานประชุม กรุณาตรวจสอบข้อมูล
+            </p>
+          )}
+        </div>
+      )}
 
       {/* Table */}
       {loading ? (
