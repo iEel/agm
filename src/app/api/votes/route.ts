@@ -88,9 +88,34 @@ async function handlePost(req: NextRequest, user: AuthUser) {
 
   // If QR data is provided, decode it
   if (qrData) {
-    const ballot = await prisma.ballot.findFirst({
+    // First try: direct qrData match
+    let ballot = await prisma.ballot.findFirst({
       where: { qrData, meetingId: activeEvent.id },
     });
+
+    // Second try: parse as refCode (e.g. "Ee5-A01-S004" = E{eventPrefix}-A{agendaOrderNo}-S{registrationNo})
+    if (!ballot) {
+      const refMatch = qrData.match(/^E.+?-A(\d+)-S(.+)$/i);
+      if (refMatch) {
+        const agendaOrderNo = parseInt(refMatch[1], 10);
+        const registrationNo = refMatch[2];
+
+        // Find agenda by orderNo
+        const agenda = await prisma.agenda.findFirst({
+          where: { meetingId: activeEvent.id, orderNo: agendaOrderNo },
+        });
+        // Find shareholder by registrationNo
+        const shareholder = await prisma.shareholder.findFirst({
+          where: { meetingId: activeEvent.id, registrationNo },
+        });
+
+        if (agenda && shareholder) {
+          ballot = await prisma.ballot.findFirst({
+            where: { meetingId: activeEvent.id, agendaId: agenda.id, shareholderId: shareholder.id },
+          });
+        }
+      }
+    }
 
     if (!ballot) {
       return NextResponse.json({ error: 'QR Code ไม่ถูกต้องหรือไม่พบบัตรลงคะแนน' }, { status: 404 });
