@@ -318,6 +318,37 @@ export default function AuditLogsPage() {
                         <div className="mt-1 text-xs text-text-secondary">
                           {typeof details === 'string' ? (
                             <p>{details}</p>
+                          ) : log.action === 'VOTE' && details['ผลโหวต'] ? (
+                            /* ── Enhanced VOTE display ── */
+                            <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
+                              {details['วาระ'] && (
+                                <span>
+                                  <span className="text-text-muted">วาระ</span>{' '}
+                                  <span className="font-semibold text-text-primary">{String(details['วาระ'])}</span>
+                                </span>
+                              )}
+                              {details['ผู้ถือหุ้น'] && (
+                                <span>
+                                  <span className="text-text-muted">โดย</span>{' '}
+                                  <span className="font-medium">{String(details['ผู้ถือหุ้น'])}</span>
+                                </span>
+                              )}
+                              {details['ผลโหวต'] && (() => {
+                                const vote = String(details['ผลโหวต']);
+                                const voteColor = vote === 'เห็นด้วย' ? 'bg-emerald-500/15 text-emerald-400'
+                                  : vote === 'ไม่เห็นด้วย' ? 'bg-red-500/15 text-red-400'
+                                  : vote === 'งดออกเสียง' ? 'bg-amber-500/15 text-amber-400'
+                                  : 'bg-gray-500/15 text-gray-400';
+                                return (
+                                  <span className={`px-1.5 py-0.5 rounded font-bold text-[10px] ${voteColor}`}>
+                                    {vote}
+                                  </span>
+                                );
+                              })()}
+                              {details['จำนวนหุ้น'] && (
+                                <span className="text-text-muted">{String(details['จำนวนหุ้น'])} หุ้น</span>
+                              )}
+                            </div>
                           ) : (
                             <div className="flex flex-wrap gap-x-4 gap-y-0.5">
                               {Object.entries(details)

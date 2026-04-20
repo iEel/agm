@@ -174,7 +174,14 @@ async function handlePost(req: NextRequest, user: AuthUser) {
     },
   });
 
-  // Audit log
+  // Audit log — human-readable details
+  const voteLabels: Record<string, string> = {
+    APPROVE: 'เห็นด้วย',
+    DISAPPROVE: 'ไม่เห็นด้วย',
+    ABSTAIN: 'งดออกเสียง',
+    VOID: 'บัตรเสีย',
+  };
+
   await prisma.auditLog.create({
     data: {
       userId: user.userId,
@@ -182,11 +189,10 @@ async function handlePost(req: NextRequest, user: AuthUser) {
       entity: 'Vote',
       entityId: vote.id,
       details: JSON.stringify({
-        agendaId: resolvedAgendaId,
-        subAgendaId: subAgendaId || null,
-        shareholderId: resolvedShareholderId,
-        voteChoice,
-        shares: shareholder.shares.toString(),
+        วาระ: `${agenda.orderNo}: ${agenda.titleTh}`,
+        ผู้ถือหุ้น: `${shareholder.firstNameTh} ${shareholder.lastNameTh} (${shareholder.registrationNo})`,
+        ผลโหวต: voteLabels[voteChoice] || voteChoice,
+        จำนวนหุ้น: BigInt(shareholder.shares).toLocaleString('th-TH'),
         scannedBy: user.username,
       }),
     },
