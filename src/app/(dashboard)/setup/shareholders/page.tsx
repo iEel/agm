@@ -312,7 +312,7 @@ export default function ShareholderPage() {
             <table className="w-full">
               <thead>
                 <tr className="border-b border-border">
-                  <th className="text-left text-xs font-semibold text-text-secondary uppercase tracking-wider px-4 py-3">ลำดับ</th>
+                  <th className="text-left text-xs font-semibold text-text-secondary uppercase tracking-wider px-4 py-3">เลขทะเบียน</th>
                   <th className="text-left text-xs font-semibold text-text-secondary uppercase tracking-wider px-4 py-3">ชื่อ-นามสกุล</th>
                   <th className="text-left text-xs font-semibold text-text-secondary uppercase tracking-wider px-4 py-3">เลขประจำตัว</th>
                   <th className="text-right text-xs font-semibold text-text-secondary uppercase tracking-wider px-4 py-3">จำนวนหุ้น</th>
