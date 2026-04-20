@@ -160,6 +160,7 @@ model Proxy {
 
   splitVotes ProxySplitVote[]
 
+  @@unique([meetingId, shareholderId])
   @@map("proxies")
 }
 

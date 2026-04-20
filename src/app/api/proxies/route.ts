@@ -56,6 +56,18 @@ async function handlePost(req: NextRequest, user: AuthUser) {
     return NextResponse.json({ error: 'ประเภทหนังสือมอบฉันทะไม่ถูกต้อง' }, { status: 400 });
   }
 
+  // Check duplicate: one shareholder can only have one proxy per meeting
+  const existingProxy = await prisma.proxy.findFirst({
+    where: { meetingId: activeEvent.id, shareholderId },
+    include: { shareholder: { select: { firstNameTh: true, lastNameTh: true } } },
+  });
+  if (existingProxy) {
+    return NextResponse.json(
+      { error: `ผู้ถือหุ้น "${existingProxy.shareholder.firstNameTh} ${existingProxy.shareholder.lastNameTh}" มีหนังสือมอบฉันทะอยู่แล้ว (ผู้รับมอบ: ${existingProxy.proxyName})` },
+      { status: 409 }
+    );
+  }
+
   const proxy = await prisma.proxy.create({
     data: {
       companyId: activeEvent.companyId,
