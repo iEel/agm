@@ -59,6 +59,7 @@ export default function ReportsPage() {
   const [reportData, setReportData] = useState<ReportData | null>(null);
   const [error, setError] = useState('');
   const [pdfLoading, setPdfLoading] = useState(false);
+  const dp = activeEvent?.decimalPrecision ?? 4;
 
   const fetchReport = async () => {
     setLoading(true);
@@ -214,8 +215,8 @@ export default function ReportsPage() {
                   <td className="border border-border/50 print:border-gray-300 px-3 py-2 text-right">{formatShares(reportData.statistics.selfShares)}</td>
                   <td className="border border-border/50 print:border-gray-300 px-3 py-2 text-right">
                     {Number(reportData.statistics.totalShares) > 0
-                      ? ((Number(reportData.statistics.selfShares) / Number(reportData.statistics.totalShares)) * 100).toFixed(2)
-                      : '0.00'}%
+                      ? ((Number(reportData.statistics.selfShares) / Number(reportData.statistics.totalShares)) * 100).toFixed(dp)
+                      : (0).toFixed(dp)}%
                   </td>
                 </tr>
                 <tr>
@@ -224,8 +225,8 @@ export default function ReportsPage() {
                   <td className="border border-border/50 print:border-gray-300 px-3 py-2 text-right">{formatShares(reportData.statistics.proxyAttendeeShares)}</td>
                   <td className="border border-border/50 print:border-gray-300 px-3 py-2 text-right">
                     {Number(reportData.statistics.totalShares) > 0
-                      ? ((Number(reportData.statistics.proxyAttendeeShares) / Number(reportData.statistics.totalShares)) * 100).toFixed(2)
-                      : '0.00'}%
+                      ? ((Number(reportData.statistics.proxyAttendeeShares) / Number(reportData.statistics.totalShares)) * 100).toFixed(dp)
+                      : (0).toFixed(dp)}%
                   </td>
                 </tr>
                 <tr className="font-bold bg-bg-tertiary/30 print:bg-gray-50">
@@ -247,7 +248,7 @@ export default function ReportsPage() {
             <div className="space-y-4">
               {reportData.agendas.map((a) => {
                 const eligible = a.snapshot ? BigInt(a.snapshot.eligibleShares) : BigInt(0);
-                const pct = (v: string) => eligible > BigInt(0) ? ((Number(v) / Number(eligible)) * 100).toFixed(2) : '0.00';
+                const pct = (v: string) => eligible > BigInt(0) ? ((Number(v) / Number(eligible)) * 100).toFixed(dp) : (0).toFixed(dp);
                 return (
                 <div key={a.orderNo} className="p-4 rounded-xl bg-bg-tertiary/30 border border-border/50 print:border-gray-300 print:bg-white">
                   <div className="flex items-start justify-between mb-3">
