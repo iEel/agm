@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useCallback, useRef } from 'react';
+import { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import { useSession } from '@/lib/session-context';
 import {
   FileSpreadsheet,
@@ -11,6 +11,9 @@ import {
   Trash2,
   AlertCircle,
   AlertTriangle,
+  Loader2,
+  Clock,
+  Zap,
   CheckCircle2,
   XCircle,
   X,
@@ -57,6 +60,15 @@ export default function ShareholderPage() {
   // Import state
   const [showImport, setShowImport] = useState(false);
   const [importing, setImporting] = useState(false);
+  const [importProgress, setImportProgress] = useState<{
+    processed: number;
+    total: number;
+    valid: number;
+    created: number;
+    updated: number;
+    errors: number;
+    batchErrors: string[];
+  } | null>(null);
   const [importResult, setImportResult] = useState<{
     success: boolean;
     totalRows: number;
@@ -66,6 +78,7 @@ export default function ShareholderPage() {
   } | null>(null);
   const [dragOver, setDragOver] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const importStartTime = useRef<number>(0);
 
   // Form state
   const [formData, setFormData] = useState({
@@ -184,20 +197,66 @@ export default function ShareholderPage() {
   const handleFileImport = async (file: File) => {
     setImporting(true);
     setImportResult(null);
+    setImportProgress(null);
+    importStartTime.current = Date.now();
     try {
       const fd = new FormData();
       fd.append('file', file);
       const res = await fetch('/api/shareholders/import', { method: 'POST', body: fd });
-      const data = await res.json();
-      if (!res.ok) {
+
+      // If not SSE stream (error response), handle as JSON
+      const contentType = res.headers.get('content-type') || '';
+      if (!contentType.includes('text/event-stream')) {
+        const data = await res.json();
         setImportResult({ success: false, totalRows: 0, created: 0, updated: 0, errors: [data.error || 'เกิดข้อผิดพลาด'] });
-      } else {
-        setImportResult(data);
-        fetchShareholders(1);
+        setImporting(false);
+        return;
       }
+
+      // Read SSE stream
+      const reader = res.body!.getReader();
+      const decoder = new TextDecoder();
+      let buffer = '';
+
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        buffer += decoder.decode(value, { stream: true });
+
+        // Parse SSE events from buffer
+        const lines = buffer.split('\n');
+        buffer = lines.pop() || ''; // keep incomplete line in buffer
+        let currentEvent = '';
+
+        for (const line of lines) {
+          if (line.startsWith('event: ')) {
+            currentEvent = line.slice(7).trim();
+          } else if (line.startsWith('data: ')) {
+            try {
+              const data = JSON.parse(line.slice(6));
+              if (currentEvent === 'progress') {
+                setImportProgress(data);
+              } else if (currentEvent === 'complete') {
+                setImportResult({
+                  success: true,
+                  totalRows: data.totalRows,
+                  created: data.created,
+                  updated: data.updated,
+                  errors: data.allErrors || [],
+                });
+                setImporting(false);
+                fetchShareholders(1);
+              }
+            } catch { /* skip malformed JSON */ }
+            currentEvent = '';
+          }
+        }
+      }
+
+      // If stream ended without complete event
+      if (importing) setImporting(false);
     } catch {
       setImportResult({ success: false, totalRows: 0, created: 0, updated: 0, errors: ['เกิดข้อผิดพลาดในการอัปโหลด'] });
-    } finally {
       setImporting(false);
     }
   };
@@ -431,16 +490,19 @@ export default function ShareholderPage() {
       {/* Import Modal */}
       {showImport && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-          <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={() => setShowImport(false)} />
+          <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={() => { if (!importing) setShowImport(false); }} />
           <div className="relative w-full max-w-lg glass-card p-6 animate-fade-in">
             <div className="flex items-center justify-between mb-6">
               <h2 className="text-lg font-bold text-text-primary flex items-center gap-2">
                 <Upload className="w-5 h-5 text-emerald-400" /> นำเข้าข้อมูลผู้ถือหุ้น
               </h2>
-              <button onClick={() => setShowImport(false)} className="p-2 rounded-lg hover:bg-bg-hover text-text-muted cursor-pointer"><X className="w-5 h-5" /></button>
+              {!importing && (
+                <button onClick={() => setShowImport(false)} className="p-2 rounded-lg hover:bg-bg-hover text-text-muted cursor-pointer"><X className="w-5 h-5" /></button>
+              )}
             </div>
 
-            {!importResult && (
+            {/* Phase 1: File picker (before import starts) */}
+            {!importing && !importResult && (
               <>
                 <div
                   onDragOver={(e) => { e.preventDefault(); setDragOver(true); }}
@@ -448,25 +510,16 @@ export default function ShareholderPage() {
                   onDrop={handleDrop}
                   onClick={() => fileInputRef.current?.click()}
                   className={`border-2 border-dashed rounded-2xl p-8 text-center cursor-pointer transition-all duration-200
-                    ${dragOver ? 'border-primary bg-primary/5' : 'border-border hover:border-primary/50'}
-                    ${importing ? 'pointer-events-none opacity-50' : ''}`}
+                    ${dragOver ? 'border-primary bg-primary/5' : 'border-border hover:border-primary/50'}`}
                 >
                   <input ref={fileInputRef} type="file" accept=".xlsx,.xls,.csv" onChange={(e) => { const f = e.target.files?.[0]; if(f) handleFileImport(f); e.target.value=''; }} className="hidden" />
-                  {importing ? (
-                    <div className="flex flex-col items-center gap-3">
-                      <div className="w-12 h-12 rounded-xl bg-primary/10 flex items-center justify-center animate-pulse-glow"><Upload className="w-6 h-6 text-primary" /></div>
-                      <p className="text-sm text-text-secondary">กำลังนำเข้า...</p>
-                    </div>
-                  ) : (
-                    <div className="flex flex-col items-center gap-3">
-                      <div className="w-14 h-14 rounded-2xl bg-emerald-500/10 flex items-center justify-center"><Download className="w-7 h-7 text-emerald-400" /></div>
-                      <p className="text-sm font-medium text-text-primary">ลากไฟล์มาวาง หรือ <span className="text-primary">เลือกไฟล์</span></p>
-                      <p className="text-xs text-text-muted">.xlsx, .xls, .csv</p>
-                    </div>
-                  )}
+                  <div className="flex flex-col items-center gap-3">
+                    <div className="w-14 h-14 rounded-2xl bg-emerald-500/10 flex items-center justify-center"><Download className="w-7 h-7 text-emerald-400" /></div>
+                    <p className="text-sm font-medium text-text-primary">ลากไฟล์มาวาง หรือ <span className="text-primary">เลือกไฟล์</span></p>
+                    <p className="text-xs text-text-muted">.xlsx, .xls, .csv</p>
+                  </div>
                 </div>
                 <div className="mt-4 space-y-3">
-                  {/* Template Download */}
                   <a
                     href="/api/shareholders/template"
                     download
@@ -493,14 +546,95 @@ export default function ShareholderPage() {
               </>
             )}
 
-            {importResult && (
+            {/* Phase 2: Live progress during import */}
+            {importing && importProgress && (() => {
+              const pct = importProgress.valid > 0 ? Math.round((importProgress.processed / importProgress.valid) * 100) : 0;
+              const elapsed = (Date.now() - importStartTime.current) / 1000;
+              const speed = elapsed > 0 ? Math.round(importProgress.processed / elapsed) : 0;
+              const remaining = speed > 0 ? Math.round((importProgress.valid - importProgress.processed) / speed) : 0;
+              return (
+                <div className="space-y-5">
+                  {/* Progress header */}
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center">
+                      <Loader2 className="w-5 h-5 text-primary animate-spin" />
+                    </div>
+                    <div className="flex-1">
+                      <p className="text-sm font-semibold text-text-primary">กำลังนำเข้าข้อมูล...</p>
+                      <p className="text-xs text-text-muted">{importProgress.processed.toLocaleString('th-TH')} / {importProgress.valid.toLocaleString('th-TH')} รายการ</p>
+                    </div>
+                    <span className="text-2xl font-bold text-primary">{pct}%</span>
+                  </div>
+
+                  {/* Progress bar */}
+                  <div className="relative h-3 rounded-full bg-bg-tertiary overflow-hidden">
+                    <div
+                      className="absolute inset-y-0 left-0 rounded-full bg-gradient-to-r from-cyan-500 via-primary to-violet-500 transition-all duration-300 ease-out"
+                      style={{ width: `${pct}%` }}
+                    />
+                    <div
+                      className="absolute inset-y-0 left-0 rounded-full bg-gradient-to-r from-white/20 to-transparent animate-pulse"
+                      style={{ width: `${pct}%` }}
+                    />
+                  </div>
+
+                  {/* Stats grid */}
+                  <div className="grid grid-cols-4 gap-2">
+                    <div className="p-2.5 rounded-xl bg-emerald-500/10 text-center">
+                      <p className="text-lg font-bold text-emerald-400">{importProgress.created.toLocaleString('th-TH')}</p>
+                      <p className="text-[10px] text-emerald-400/70">เพิ่มใหม่</p>
+                    </div>
+                    <div className="p-2.5 rounded-xl bg-blue-500/10 text-center">
+                      <p className="text-lg font-bold text-blue-400">{importProgress.updated.toLocaleString('th-TH')}</p>
+                      <p className="text-[10px] text-blue-400/70">อัปเดต</p>
+                    </div>
+                    <div className="p-2.5 rounded-xl bg-red-500/10 text-center">
+                      <p className="text-lg font-bold text-red-400">{importProgress.errors}</p>
+                      <p className="text-[10px] text-red-400/70">ผิดพลาด</p>
+                    </div>
+                    <div className="p-2.5 rounded-xl bg-bg-tertiary text-center">
+                      <p className="text-lg font-bold text-text-primary">{importProgress.total.toLocaleString('th-TH')}</p>
+                      <p className="text-[10px] text-text-muted">ทั้งหมด</p>
+                    </div>
+                  </div>
+
+                  {/* Speed & ETA */}
+                  <div className="flex items-center justify-between text-xs text-text-muted">
+                    <span className="flex items-center gap-1"><Zap className="w-3 h-3 text-amber-400" /> ~{speed.toLocaleString('th-TH')} รายการ/วินาที</span>
+                    <span className="flex items-center gap-1"><Clock className="w-3 h-3 text-cyan-400" /> เหลือ ~{remaining > 60 ? `${Math.floor(remaining / 60)} นาที ${remaining % 60} วินาที` : `${remaining} วินาที`}</span>
+                  </div>
+
+                  {/* Batch errors (latest) */}
+                  {importProgress.batchErrors.length > 0 && (
+                    <div className="max-h-24 overflow-y-auto p-2 rounded-lg bg-bg-tertiary/50 space-y-0.5">
+                      {importProgress.batchErrors.map((err, i) => (
+                        <p key={i} className="text-[10px] text-danger/70 flex items-start gap-1"><XCircle className="w-2.5 h-2.5 flex-shrink-0 mt-0.5" />{err}</p>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              );
+            })()}
+
+            {/* Phase 2b: Importing but no progress yet (parsing file) */}
+            {importing && !importProgress && (
+              <div className="flex flex-col items-center gap-4 py-8">
+                <div className="w-14 h-14 rounded-2xl bg-primary/10 flex items-center justify-center">
+                  <Loader2 className="w-7 h-7 text-primary animate-spin" />
+                </div>
+                <p className="text-sm text-text-secondary">กำลังอ่านไฟล์และตรวจสอบข้อมูล...</p>
+              </div>
+            )}
+
+            {/* Phase 3: Completed */}
+            {!importing && importResult && (
               <div className="space-y-4">
                 <div className={`p-4 rounded-xl flex items-center gap-3 ${importResult.success ? 'bg-emerald-500/10 border border-emerald-500/20' : 'bg-danger/10 border border-danger/20'}`}>
                   {importResult.success ? <CheckCircle2 className="w-6 h-6 text-emerald-400" /> : <XCircle className="w-6 h-6 text-danger" />}
                   <div>
                     <p className="text-sm font-medium text-text-primary">{importResult.success ? 'นำเข้าสำเร็จ' : 'เกิดข้อผิดพลาด'}</p>
                     {importResult.success && (
-                      <p className="text-xs text-text-secondary mt-0.5">ทั้งหมด {importResult.totalRows} แถว — เพิ่ม {importResult.created}, อัปเดต {importResult.updated}{importResult.errors.length > 0 && `, ผิดพลาด ${importResult.errors.length}`}</p>
+                      <p className="text-xs text-text-secondary mt-0.5">ทั้งหมด {importResult.totalRows.toLocaleString('th-TH')} แถว — เพิ่ม {importResult.created.toLocaleString('th-TH')}, อัปเดต {importResult.updated.toLocaleString('th-TH')}{importResult.errors.length > 0 && `, ผิดพลาด ${importResult.errors.length}`}</p>
                     )}
                   </div>
                 </div>
@@ -512,7 +646,7 @@ export default function ShareholderPage() {
                   </div>
                 )}
                 <div className="flex justify-end gap-3">
-                  <button onClick={() => setImportResult(null)} className="px-4 py-2 rounded-xl bg-bg-tertiary text-text-secondary text-sm font-medium cursor-pointer">นำเข้าอีกครั้ง</button>
+                  <button onClick={() => { setImportResult(null); setImportProgress(null); }} className="px-4 py-2 rounded-xl bg-bg-tertiary text-text-secondary text-sm font-medium cursor-pointer">นำเข้าอีกครั้ง</button>
                   <button onClick={() => setShowImport(false)} className="px-4 py-2 rounded-xl gradient-primary text-white text-sm font-medium cursor-pointer">ปิด</button>
                 </div>
               </div>
