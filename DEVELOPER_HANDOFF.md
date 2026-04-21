@@ -1036,3 +1036,28 @@ API ใช้ 3 parallel `aggregate()` queries (total, SELF, not-SELF)
 **ประโยชน์:**
 - พิธีกรเปิดหน้าจอขึ้นโปรเจคเตอร์ได้เลย ตัวเลขไม่ขยับ
 - ดูย้อนหลังแสดงข้อมูลเดิมเป๊ะๆ ใช้เป็นหลักฐาน/รายงานได้
+
+---
+
+## v23 Changelog (21 เมษายน 2569)
+
+### 🚀 Streaming Shareholder Import (SSE)
+
+**ปัญหาเดิม:** นำเข้าไฟล์ Excel ผู้ถือหุ้นขนาดใหญ่ (เช่น 20,000+ รายการ) ทำให้เกิดปัญหา HTTP Timeout และผู้ใช้ไม่ทราบสถานะการนำเข้า
+
+**การแก้ไข:** 
+- ปรับปรุง `POST /api/shareholders/import` จาก Synchronous เป็น **Server-Sent Events (SSE) Streaming**
+- **Backend:** แบ่งประมวลผลเป็น Batch (500 รายการ/รอบ) ใช้ `prisma.$transaction` และ `upsert` เพื่อเพิ่มประสิทธิภาพ และ Stream สถานะกลับไปยัง Client
+- **Frontend:** เพิ่ม UI Progress Bar แสดงความคืบหน้าแบบ Real-time พร้อมบอกสถานะ นำเข้า/อัปเดต/ผิดพลาด, ความเร็ว (records/sec) และเวลาโดยประมาณ (ETA)
+- **Files:** `src/app/api/shareholders/import/route.ts`, `src/app/(dashboard)/setup/shareholders/page.tsx`
+
+### ⚙️ Configurable Decimal Precision
+
+**ปัญหาเดิม:** เปอร์เซ็นต์การลงคะแนนเสียงและองค์ประชุมถูก hardcode ทศนิยมไว้ที่ 4 ตำแหน่ง (`toFixed(4)`) 
+
+**การแก้ไข:**
+- เพิ่ม Column `decimalPrecision Int @default(4)` ใน `events` table
+- เพิ่ม UI ให้ Admin เลือกกำหนดความละเอียดทศนิยม (2, 4 หรือ 6 หลัก) สำหรับแต่ละงานประชุม ในหน้า Event Form
+- ระบบจะนำค่าทศนิยมนี้ไปใช้คำนวณและแสดงผลใน **หน้าทางการ** โดยอัตโนมัติ (จอองค์ประชุม, จอผลลงคะแนน, หน้าจอ MC, และ Report PDF)
+- หน้า Admin ภายในยังคงแสดงเป็น 2 ตำแหน่งเหมือนเดิมเพื่อความรวดเร็วในการตรวจสอบ
+- **Files:** Schema, Event APIs, Public APIs, Session Context, และ Frontend pages (vote-results, quorum-display, mc, ReportPDF)
