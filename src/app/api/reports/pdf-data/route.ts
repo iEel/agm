@@ -78,7 +78,7 @@ async function handleGet(req: NextRequest, user: AuthUser) {
       currentShares: (currentAttendees._sum.shares || BigInt(0)).toString(),
       totalShares: activeEvent.totalShares.toString(),
       quorumPercentage: activeEvent.totalShares > 0
-        ? ((Number(currentAttendees._sum.shares || 0) / Number(activeEvent.totalShares)) * 100).toFixed(2)
+        ? ((Number(currentAttendees._sum.shares || 0) / Number(activeEvent.totalShares)) * 100).toFixed(activeEvent.decimalPrecision || 4)
         : '0',
       proxyCount,
       selfCount: selfAttendees._count || 0,

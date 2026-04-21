@@ -87,7 +87,7 @@ export default function ReportsPage() {
       const { ReportPDFDocument } = await import('@/components/ReportPDF');
       const { createElement } = await import('react');
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const blob = await pdf(createElement(ReportPDFDocument, { data: reportData }) as any).toBlob();
+      const blob = await pdf(createElement(ReportPDFDocument, { data: { ...reportData, decimalPrecision: activeEvent?.decimalPrecision ?? 4 } }) as any).toBlob();
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;

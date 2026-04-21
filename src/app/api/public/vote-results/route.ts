@@ -110,6 +110,8 @@ export async function GET(req: NextRequest) {
      * @param resolutionType - determines denominator & threshold
      * @param eligibleShares - total shares of attendees eligible to vote in this agenda
      */
+    const dp = activeEvent.decimalPrecision || 4;
+
     const computeResults = (
       votes: { voteChoice: string; shares: bigint }[],
       resolutionType: string,
@@ -184,9 +186,9 @@ export async function GET(req: NextRequest) {
         abstain: abstain.toString(),
         voided: voided.toString(),
         total: total.toString(),
-        approvePercent: approvePercent.toFixed(4),
-        disapprovePercent: disapprovePercent.toFixed(4),
-        totalPercent: denominator > BigInt(0) ? ((Number(total) / Number(denominator)) * 100).toFixed(4) : '0.0000',
+        approvePercent: approvePercent.toFixed(dp),
+        disapprovePercent: disapprovePercent.toFixed(dp),
+        totalPercent: denominator > BigInt(0) ? ((Number(total) / Number(denominator)) * 100).toFixed(dp) : '0'.padEnd(dp + 2, '0'),
         denominator: denominator.toString(),
         threshold,
         thresholdLabel,
@@ -325,6 +327,7 @@ export async function GET(req: NextRequest) {
         return expanded;
       })(),
       selectedSubOrder,
+      decimalPrecision: dp,
       timestamp: new Date().toISOString(),
     });
   } catch (err) {

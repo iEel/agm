@@ -65,8 +65,9 @@ export async function GET() {
     const totalShares = selfShares + proxyShares;
     const totalPaidUpShares = activeEvent.totalShares;
 
+    const dp = activeEvent.decimalPrecision || 4;
     const percentage = totalPaidUpShares > BigInt(0)
-      ? (Number(totalShares) / Number(totalPaidUpShares) * 100).toFixed(4)
+      ? (Number(totalShares) / Number(totalPaidUpShares) * 100).toFixed(dp)
       : '0';
 
     const minPersons = Math.min(25, Math.ceil(totalShareholders / 2));
@@ -85,6 +86,7 @@ export async function GET() {
       percentage,
       quorumMet,
       quorumDetail: { personsOk, sharesOk, minPersons, minSharesFraction: '1/3' },
+      decimalPrecision: dp,
       timestamp: new Date().toISOString(),
     });
   } catch (err) {

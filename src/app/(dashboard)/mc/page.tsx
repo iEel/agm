@@ -93,6 +93,7 @@ const RESOLUTION_LABELS: Record<string, string> = {
 
 export default function MCPage() {
   const { activeEvent } = useSession();
+  const dp = activeEvent?.decimalPrecision ?? 4;
   const [agendas, setAgendas] = useState<Agenda[]>([]);
   const [quorum, setQuorum] = useState<Quorum | null>(null);
   const [loading, setLoading] = useState(true);
@@ -615,7 +616,7 @@ export default function MCPage() {
                       { label: 'งดออกเสียง', shares: sub.abstain, color: 'text-amber-400', barColor: 'bg-amber-500' },
                     ];
                     const totalShares = items.reduce((s, i) => s + Number(i.shares), 0);
-                    const pct = (v: string) => totalShares > 0 ? ((Number(v) / totalShares) * 100).toFixed(1) : '0.0';
+                    const pct = (v: string) => totalShares > 0 ? ((Number(v) / totalShares) * 100).toFixed(dp) : (0).toFixed(dp);
 
                     return (
                       <div key={sub.orderNo} className="p-4 rounded-xl bg-gradient-to-br from-bg-tertiary/80 to-bg-tertiary/30 border border-border/50">
@@ -668,7 +669,7 @@ export default function MCPage() {
                   { label: 'บัตรเสีย', shares: voteResults.voided, color: 'text-gray-400', barColor: 'bg-gray-500' },
                 ];
                 const totalShares = items.reduce((s, i) => s + Number(i.shares), 0);
-                const pct = (v: string) => totalShares > 0 ? ((Number(v) / totalShares) * 100).toFixed(2) : '0.00';
+                const pct = (v: string) => totalShares > 0 ? ((Number(v) / totalShares) * 100).toFixed(dp) : (0).toFixed(dp);
 
                 return (
                   <div className="p-5 rounded-2xl bg-gradient-to-br from-bg-tertiary/80 to-bg-tertiary/30 border border-border/50">
@@ -702,7 +703,7 @@ export default function MCPage() {
                       ))}
                     </div>
                     <div className="mt-3 pt-3 border-t border-border/30 flex items-center justify-between text-xs text-text-muted">
-                      <span>เห็นด้วย: {parseFloat(voteResults.approvePercent).toFixed(2)}%</span>
+                      <span>เห็นด้วย: {parseFloat(voteResults.approvePercent).toFixed(dp)}%</span>
                       <span>หุ้นรวม: {fmtShares(String(totalShares))} หุ้น</span>
                     </div>
                   </div>

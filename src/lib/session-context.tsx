@@ -20,6 +20,7 @@ export interface SessionContextType {
     status: string;
     companyName: string;
     companyLogo?: string;
+    decimalPrecision?: number;
   } | null;
 }
 

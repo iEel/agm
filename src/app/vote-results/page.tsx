@@ -21,6 +21,7 @@ interface VoteData {
   }> | null;
   allAgendas: Array<{ orderNo: number; subOrderNo?: number; displayNo: string; titleTh: string; title: string; resolutionType: string; status: string }>;
   selectedSubOrder: number | null;
+  decimalPrecision: number;
   timestamp: string;
 }
 
@@ -94,6 +95,8 @@ export default function VoteResultsDisplayPage() {
   const r = data.results;
   const isElection = data.agenda.resolutionType === 'ELECTION';
   const isInfo = data.agenda.resolutionType === 'INFO';
+  const dp = data.decimalPrecision || 4;
+  const zeroPad = (0).toFixed(dp);
 
   return (
     <div className="min-h-screen bg-white flex flex-col">
@@ -239,21 +242,21 @@ export default function VoteResultsDisplayPage() {
                           <td className="py-3 px-5 text-base font-bold">งดออกเสียง <span className="text-gray-500 font-normal">(Abstained)</span></td>
                           <td className="py-3 px-5 text-right text-2xl font-bold">{fmt(r.abstain)}</td>
                           <td className="py-3 px-5 text-right text-2xl font-bold">
-                            {BigInt(r.denominator) > BigInt(0) ? (Number(BigInt(r.abstain)) / Number(BigInt(r.denominator)) * 100).toFixed(4) : '0.0000'}
+                            {BigInt(r.denominator) > BigInt(0) ? (Number(BigInt(r.abstain)) / Number(BigInt(r.denominator)) * 100).toFixed(dp) : zeroPad}
                           </td>
                         </tr>
                         <tr>
                           <td className="py-3 px-5 text-base font-bold">บัตรเสีย <span className="text-gray-500 font-normal">(Voided Ballot)</span></td>
                           <td className="py-3 px-5 text-right text-2xl font-bold">{fmt(r.voided)}</td>
                           <td className="py-3 px-5 text-right text-2xl font-bold">
-                            {BigInt(r.denominator) > BigInt(0) ? (Number(BigInt(r.voided)) / Number(BigInt(r.denominator)) * 100).toFixed(4) : '0.0000'}
+                            {BigInt(r.denominator) > BigInt(0) ? (Number(BigInt(r.voided)) / Number(BigInt(r.denominator)) * 100).toFixed(dp) : zeroPad}
                           </td>
                         </tr>
                         <tr><td colSpan={3} className="border-t-2 border-gray-800 h-0 p-0"></td></tr>
                         <tr className="bg-gray-50">
                           <td className="py-3 px-5 text-lg font-bold">รวม <span className="text-gray-500 font-normal">(Total)</span></td>
                           <td className="py-3 px-5 text-right text-3xl font-black">{fmt(r.denominator)}</td>
-                          <td className="py-3 px-5 text-right text-3xl font-black">100.0000</td>
+                          <td className="py-3 px-5 text-right text-3xl font-black">{(100).toFixed(dp)}</td>
                         </tr>
                       </>
                     )}
@@ -298,7 +301,7 @@ export default function VoteResultsDisplayPage() {
                             <td className="py-2 px-4 text-right text-3xl font-black">
                               {(() => {
                                 const total = BigInt(sub.approve) + BigInt(sub.disapprove);
-                                return total > BigInt(0) ? '100.0000' : '0.0000';
+                                return total > BigInt(0) ? (100).toFixed(dp) : zeroPad;
                               })()}
                             </td>
                           </tr>

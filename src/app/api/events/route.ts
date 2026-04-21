@@ -36,7 +36,7 @@ export const GET = withAuth(async (req: NextRequest, _user: AuthUser) => {
 // POST /api/events — Create event
 export const POST = withAuth(async (req: NextRequest, _user: AuthUser) => {
   const body = await req.json();
-  const { companyId, name, type, date, venue, totalShares } = body;
+  const { companyId, name, type, date, venue, totalShares, decimalPrecision } = body;
 
   if (!companyId || !name || !type || !date) {
     return NextResponse.json(
@@ -53,6 +53,7 @@ export const POST = withAuth(async (req: NextRequest, _user: AuthUser) => {
       date: new Date(date),
       venue: venue || null,
       totalShares: BigInt(totalShares || 0),
+      decimalPrecision: decimalPrecision ? parseInt(decimalPrecision) : 4,
       status: 'DRAFT',
     },
   });

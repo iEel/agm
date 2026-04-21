@@ -63,8 +63,9 @@ async function handlePut(req: NextRequest, user: AuthUser) {
     const totalShares = selfShares + proxyShares;
     const totalPaidUpShares = existing.totalShares;
 
+    const dp = existing.decimalPrecision || 4;
     const percentage = totalPaidUpShares > BigInt(0)
-      ? (Number(totalShares) / Number(totalPaidUpShares) * 100).toFixed(4)
+      ? (Number(totalShares) / Number(totalPaidUpShares) * 100).toFixed(dp)
       : '0';
 
     const minPersons = Math.min(25, Math.ceil(totalShareholders / 2));
@@ -92,6 +93,7 @@ async function handlePut(req: NextRequest, user: AuthUser) {
       date: body.date ? new Date(body.date) : existing.date,
       venue: body.venue !== undefined ? (body.venue || null) : existing.venue,
       totalShares: body.totalShares ? BigInt(body.totalShares) : existing.totalShares,
+      decimalPrecision: body.decimalPrecision !== undefined ? parseInt(body.decimalPrecision) : existing.decimalPrecision,
       status: body.status ?? existing.status,
       closedAt,
       quorumSnapshot,

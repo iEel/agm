@@ -48,8 +48,9 @@ model Event {
   venue       String?  @db.NVarChar(500)
   isActive    Boolean  @default(false)
   status      String   @default("DRAFT") @db.NVarChar(20)
-  totalShares BigInt   @default(0)
-  createdAt   DateTime @default(now())
+  totalShares       BigInt   @default(0)
+  decimalPrecision  Int      @default(4)
+  createdAt         DateTime @default(now())
   updatedAt   DateTime @updatedAt
   closedAt       DateTime?
   quorumSnapshot String?   @db.NVarChar(Max)

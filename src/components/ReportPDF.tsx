@@ -228,6 +228,7 @@ const s = StyleSheet.create({
 
 // Interfaces (same shape as reports page)
 export interface PDFReportData {
+  decimalPrecision?: number;
   event: { name: string; type: string; date: string; venue: string };
   company: { name: string; nameTh: string; address: string; taxId: string; logoUrl?: string };
   statistics: {
@@ -269,9 +270,9 @@ const fmtDate = (d: string) => {
   const months = ['มกราคม','กุมภาพันธ์','มีนาคม','เมษายน','พฤษภาคม','มิถุนายน','กรกฎาคม','สิงหาคม','กันยายน','ตุลาคม','พฤศจิกายน','ธันวาคม'];
   return `${date.getDate()} ${months[date.getMonth()]} ${thaiYear}`;
 };
-const pct = (v: string, total: string) => {
+const pctFn = (v: string, total: string, dp: number) => {
   const t = Number(total);
-  return t > 0 ? ((Number(v) / t) * 100).toFixed(2) : '0.00';
+  return t > 0 ? ((Number(v) / t) * 100).toFixed(dp) : (0).toFixed(dp);
 };
 
 const RESOLUTION_LABELS: Record<string, string> = {
@@ -293,6 +294,8 @@ const RESULT_LABELS: Record<string, string> = {
 export const ReportPDFDocument = ({ data }: { data: PDFReportData }) => {
   const now = new Date().toLocaleString('th-TH');
   const meetingType = data.event.type === 'AGM' ? 'สามัญ' : 'วิสามัญ';
+  const dp = data.decimalPrecision ?? 4;
+  const pct = (v: string, total: string) => pctFn(v, total, dp);
 
   return (
     <Document
@@ -406,7 +409,7 @@ export const ReportPDFDocument = ({ data }: { data: PDFReportData }) => {
                     <View style={s.tableRowTotal}>
                       <Text style={[s.tableCellBold, { width: '35%' }]}>รวม (Total)</Text>
                       <Text style={[s.tableCellRight, { width: '35%', fontWeight: 'bold' }]}>{fmt(eligible)}</Text>
-                      <Text style={[s.tableCellRight, { width: '30%', fontWeight: 'bold', borderRight: 'none' }]}>100.00%</Text>
+                      <Text style={[s.tableCellRight, { width: '30%', fontWeight: 'bold', borderRight: 'none' }]}>{(100).toFixed(dp)}%</Text>
                     </View>
 
                     <Text style={s.smallNote}>

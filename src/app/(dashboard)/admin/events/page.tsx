@@ -39,6 +39,7 @@ interface Event {
   totalShares: string;
   company: { name: string; nameTh: string; logoUrl?: string };
   _count: { shareholders: number; agendas: number; registrations: number };
+  decimalPrecision: number;
 }
 
 interface Company {
@@ -54,6 +55,7 @@ interface EventForm {
   date: string;
   venue: string;
   totalShares: string;
+  decimalPrecision: string;
 }
 
 const emptyForm: EventForm = {
@@ -63,6 +65,7 @@ const emptyForm: EventForm = {
   date: '',
   venue: '',
   totalShares: '',
+  decimalPrecision: '4',
 };
 
 const STATUS_COLORS: Record<string, string> = {
@@ -157,6 +160,7 @@ export default function EventsPage() {
       date: new Date(new Date(event.date).getTime() - new Date(event.date).getTimezoneOffset() * 60000).toISOString().slice(0, 16),
       venue: event.venue || '',
       totalShares: event.totalShares,
+      decimalPrecision: String(event.decimalPrecision ?? 4),
     });
     setError('');
     setShowModal(true);
@@ -630,6 +634,24 @@ export default function EventsPage() {
                   className="w-full px-4 py-2.5 bg-bg-tertiary border border-border rounded-xl focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary text-text-primary placeholder-text-muted text-sm transition-all"
                   placeholder="จำนวนหุ้นทั้งหมดที่จดทะเบียน"
                 />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-text-secondary mb-1.5">
+                  ทศนิยมเปอร์เซ็นต์
+                </label>
+                <select
+                  value={form.decimalPrecision}
+                  onChange={(e) => setForm({ ...form, decimalPrecision: e.target.value })}
+                  className="w-full px-4 py-2.5 bg-bg-tertiary border border-border rounded-xl focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary text-text-primary text-sm transition-all"
+                >
+                  <option value="2">2 หลัก (เช่น 99.99%)</option>
+                  <option value="4">4 หลัก (เช่น 99.9999%)</option>
+                  <option value="6">6 หลัก (เช่น 99.999999%)</option>
+                </select>
+                <p className="text-[10px] text-text-muted mt-1">
+                  ใช้แสดงผลบนจอองค์ประชุม, ผลลงคะแนน และรายงาน PDF
+                </p>
               </div>
 
               <div className="flex gap-3 pt-2">

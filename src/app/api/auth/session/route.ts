@@ -43,6 +43,7 @@ export async function GET() {
             status: activeEvent.status,
             companyName: activeEvent.company.nameTh || activeEvent.company.name,
             companyLogo: activeEvent.company.logoUrl,
+            decimalPrecision: activeEvent.decimalPrecision ?? 4,
           }
         : null,
     });
