@@ -1,7 +1,7 @@
 # 📋 Developer Handoff — e-AGM & QR Ballot System
 
-> **สถานะ**: Phase 1-10 เสร็จสมบูรณ์ ✅ | FR Audit + State Machine + Ballot Print + MC Screen + SSE Real-time
-> **อัปเดตล่าสุด**: 17 มีนาคม 2569 (v22 — Quorum Snapshot on Meeting Close)
+> **สถานะ**: Phase 1-10 เสร็จสมบูรณ์ ✅ | Security Hardening + API Guards + Tests + Lint Error Cleanup
+> **อัปเดตล่าสุด**: 22 เมษายน 2569 (v24 — Security Hardening, Tests, Lint Errors Fixed)
 
 ---
 
@@ -67,8 +67,8 @@ npx prisma db push
 npm run dev
 # เปิด http://localhost:3000
 
-# 7. Seed ข้อมูลเริ่มต้น (ทำครั้งเดียว)
-# POST http://localhost:3000/api/seed
+# 7. Seed ข้อมูลเริ่มต้น (ทำเฉพาะ local/dev ครั้งแรก)
+# ต้องตั้ง ENABLE_SEED_ENDPOINT=true ก่อน และ endpoint นี้ถูกปิดใน production เสมอ
 curl -X POST http://localhost:3000/api/seed
 ```
 
@@ -94,9 +94,13 @@ DATABASE_URL=sqlserver://192.168.110.106:1433;database=eagm_db;user=sa;password=
 # Authentication
 AUTH_SECRET=your-random-secret-at-least-32-chars
 JWT_EXPIRES_IN=8h
+
+# Development only: เปิด /api/seed ชั่วคราว
+ENABLE_SEED_ENDPOINT=false
 ```
 
 > ⚠️ **สำคัญ**: `instanceName` ใน `DATABASE_URL` ต้องตรงกับ SQL Server instance
+> ⚠️ **Security**: `AUTH_SECRET` ต้องตั้งจริงและห้ามใช้ fallback/default secret; ถ้าไม่มี secret ระบบ auth จะ fail-fast
 
 ---
 
@@ -709,8 +713,26 @@ AUTH_SECRET=<random-64-char-string>
 2. ~~**BigInt serialization** — ✅ แก้แล้ว: ใช้ `serializeBigInt()` จาก `src/lib/serialize.ts`~~
 3. ~~**QR Camera** — ✅ แก้แล้ว: integrate `html5-qrcode` ในหน้า tallying~~
 4. ~~**Events/Users Admin** — ✅ แก้แล้ว: CRUD + Edit/Delete สมบูรณ์~~
+5. **Lint warnings** — `npm run lint` ผ่านแล้ว (0 errors) แต่ยังมี warnings เรื่อง unused variables, `<img>` vs `next/image`, effect dependency และ accessibility ซึ่งยังไม่บล็อก build/deploy
 
 ---
+
+### Verification Commands
+
+ใช้ชุดคำสั่งนี้ก่อน deploy หรือหลังแก้ logic สำคัญ:
+
+```bash
+npm run lint
+npm test
+npx tsc --noEmit
+npm run build
+```
+
+สถานะล่าสุด (22 เมษายน 2569):
+- `npm run lint` ผ่าน มี warnings 66 รายการ แต่ไม่มี errors
+- `npm test` ผ่าน 16 tests / 6 files
+- `npx tsc --noEmit` ผ่าน
+- `npm run build` ผ่าน
 
 ## 12. Prisma Commands Reference
 
@@ -737,7 +759,9 @@ npx prisma migrate dev --name your_migration_name
 
 - โปรเจคนี้ใช้ **Logical Isolation** (companyId + meetingId) แทน multi-database
 - ทุก API route ที่เป็น operation ต้องมี **Active Event** (`isActive: true` ในตาราง events)
-- Seed endpoint (`POST /api/seed`) ใช้สร้าง admin user + demo data ครั้งแรก
+- Seed endpoint (`POST /api/seed`) ใช้สร้าง admin user + demo data ครั้งแรก เฉพาะ local/dev โดยต้องตั้ง `ENABLE_SEED_ENDPOINT=true`; production จะปิดเสมอ
+- Vote API ตอนนี้บังคับว่า shareholder ต้องอยู่ใน active meeting, มี registration และยังไม่ checkout ก่อนบันทึก vote
+- Registration checkout/cancel บังคับว่าข้อมูลต้องตรงกับ active meeting และ company ของ user
 - Design system เป็น **Dark Theme** — ไม่มี light mode toggle
 
 ---
@@ -1061,3 +1085,68 @@ API ใช้ 3 parallel `aggregate()` queries (total, SELF, not-SELF)
 - ระบบจะนำค่าทศนิยมนี้ไปใช้คำนวณและแสดงผลใน **หน้าทางการ** โดยอัตโนมัติ (จอองค์ประชุม, จอผลลงคะแนน, หน้าจอ MC, และ Report PDF)
 - หน้า Admin ภายในยังคงแสดงเป็น 2 ตำแหน่งเหมือนเดิมเพื่อความรวดเร็วในการตรวจสอบ
 - **Files:** Schema, Event APIs, Public APIs, Session Context, และ Frontend pages (vote-results, quorum-display, mc, ReportPDF)
+
+---
+
+## v24 Changelog (22 เมษายน 2569)
+
+### 🔒 Security Hardening + Meeting Ownership Guards
+
+**Commits:**
+- `b6a8537` — Harden AGM API security and add tests
+- `e6899d5` — Fix lint errors in AGM frontend utilities
+
+**การแก้ไขหลัก:**
+- เพิ่ม `getJwtSecret()` ใน `src/lib/auth.ts` และยกเลิก fallback secret (`fallback-secret-change-me`) ทุกจุดสำคัญ
+- Login/session/import/middleware ใช้ secret validation แบบ fail-fast ถ้า `AUTH_SECRET` ไม่ถูกตั้งค่า
+- ปิด `POST /api/seed` เป็นค่าเริ่มต้น: ใช้ได้เฉพาะ `ENABLE_SEED_ENDPOINT=true` และไม่ใช่ production
+- `POST /api/votes` ตรวจเข้มขึ้น:
+  - agenda ต้องเป็นของ active meeting และอยู่สถานะ `OPEN`
+  - shareholder ต้องมี registration ใน active meeting
+  - shareholder ต้องยังไม่ checkout
+  - ใช้จำนวนหุ้นจาก registration ในการบันทึก vote
+- Registration APIs ตรวจ company/meeting ownership:
+  - check-in รับเฉพาะ shareholder ของ active meeting
+  - checkout/cancel รับเฉพาะ registration ของ active meeting
+  - user ที่มี `companyId` ไม่ตรงกับ active event จะได้ 403
+- ปิดวาระ (`PUT /api/agendas/[id]/status`) ตรวจ agenda ownership และทำ status close + snapshot ใน transaction เดียวกัน
+- Shareholder import audit ใช้ `payload.userId` ให้ตรงกับ token ที่ login สร้างไว้
+
+### ✅ Test Suite Added
+
+เพิ่ม Vitest และ test script:
+
+```bash
+npm test
+```
+
+**Coverage ล่าสุด:**
+- Vote API guard: checked-in shareholder, wrong meeting/company, registration shares
+- Registration API guard: shareholder active meeting, company mismatch
+- Registration `[id]` guard: checkout/cancel เฉพาะ active meeting
+- Agenda close: transaction + snapshot calculation
+- Auth secret: missing/default secret ต้อง fail
+- Seed endpoint: disabled by default และ disabled in production
+
+**Files added:**
+- `vitest.config.ts`
+- `src/lib/auth.test.ts`
+- `src/app/api/seed/route.test.ts`
+- `src/app/api/votes/route.test.ts`
+- `src/app/api/registrations/route.test.ts`
+- `src/app/api/registrations/[id]/route.test.ts`
+- `src/app/api/agendas/[id]/status/route.test.ts`
+
+### 🧹 Lint Error Cleanup
+
+แก้ lint errors ที่บล็อก `npm run lint`:
+- `prefer-const` ใน `src/app/api/ballots/auto-generate/route.ts`
+- `react-hooks/set-state-in-effect` ใน `src/app/quorum-display/page.tsx`
+- theme initialization ใน `src/lib/theme-context.tsx`
+- SSE reconnect/ref handling ใน `src/lib/use-sse.ts`
+
+**สถานะล่าสุด:**
+- `npm run lint` ผ่านแล้ว (0 errors, เหลือ warnings)
+- `npm test` ผ่าน 16 tests
+- `npx tsc --noEmit` ผ่าน
+- `npm run build` ผ่าน
