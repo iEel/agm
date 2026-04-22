@@ -15,16 +15,14 @@ const ThemeContext = createContext<ThemeContextType>({
 });
 
 export function ThemeProvider({ children }: { children: ReactNode }) {
-  const [theme, setTheme] = useState<Theme>('light');
-  const [mounted, setMounted] = useState(false);
+  const [theme, setTheme] = useState<Theme>(() => {
+    if (typeof window === 'undefined') return 'light';
+    return (localStorage.getItem('eagm-theme') as Theme | null) || 'light';
+  });
 
   useEffect(() => {
-    const stored = localStorage.getItem('eagm-theme') as Theme | null;
-    const initial = stored || 'light';
-    setTheme(initial);
-    document.documentElement.classList.toggle('dark', initial === 'dark');
-    setMounted(true);
-  }, []);
+    document.documentElement.classList.toggle('dark', theme === 'dark');
+  }, [theme]);
 
   const toggleTheme = () => {
     const next = theme === 'light' ? 'dark' : 'light';
@@ -32,9 +30,6 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
     localStorage.setItem('eagm-theme', next);
     document.documentElement.classList.toggle('dark', next === 'dark');
   };
-
-  // Prevent flash of wrong theme
-  if (!mounted) return null;
 
   return (
     <ThemeContext.Provider value={{ theme, toggleTheme }}>

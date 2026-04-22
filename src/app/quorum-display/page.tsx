@@ -44,7 +44,10 @@ export default function QuorumDisplayPage() {
   }, []);
 
   useEffect(() => {
-    fetchData();
+    const timer = setTimeout(() => {
+      fetchData();
+    }, 0);
+    return () => clearTimeout(timer);
   }, [fetchData]);
 
   // SSE real-time updates (falls back to polling every 5s)

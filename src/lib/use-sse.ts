@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useRef, useCallback } from 'react';
+import { useEffect, useRef } from 'react';
 
 /**
  * React hook for SSE (Server-Sent Events).
@@ -15,65 +15,74 @@ export function useSSE(
   fallbackIntervalMs: number = 10000
 ) {
   const onEventRef = useRef(onEvent);
-  onEventRef.current = onEvent;
 
-  const reconnectAttempts = useRef(0);
-  const maxReconnectAttempts = 5;
+  useEffect(() => {
+    onEventRef.current = onEvent;
+  }, [onEvent]);
 
-  const connect = useCallback(() => {
+  useEffect(() => {
     // Skip SSE in SSR
     if (typeof window === 'undefined') return;
 
-    let eventSource: EventSource;
+    let eventSource: EventSource | null = null;
     let fallbackInterval: ReturnType<typeof setInterval> | null = null;
+    let reconnectTimer: ReturnType<typeof setTimeout> | null = null;
+    let reconnectAttempts = 0;
+    let disposed = false;
+    const maxReconnectAttempts = 5;
 
-    try {
-      eventSource = new EventSource('/api/sse');
+    const startFallbackPolling = () => {
+      if (!fallbackInterval) {
+        fallbackInterval = setInterval(() => onEventRef.current(), fallbackIntervalMs);
+      }
+    };
 
-      eventSource.onopen = () => {
-        reconnectAttempts.current = 0;
-        // Clear fallback polling if SSE is connected
-        if (fallbackInterval) {
-          clearInterval(fallbackInterval);
-          fallbackInterval = null;
-        }
-      };
+    const connect = () => {
+      if (disposed) return;
 
-      // Listen to specific events
-      const events = ['registration', 'vote', 'agenda', 'refresh'];
-      events.forEach((event) => {
-        eventSource.addEventListener(event, () => {
-          onEventRef.current();
+      try {
+        eventSource = new EventSource('/api/sse');
+
+        eventSource.onopen = () => {
+          reconnectAttempts = 0;
+          if (fallbackInterval) {
+            clearInterval(fallbackInterval);
+            fallbackInterval = null;
+          }
+        };
+
+        const events = ['registration', 'vote', 'agenda', 'refresh'];
+        events.forEach((event) => {
+          eventSource?.addEventListener(event, () => {
+            onEventRef.current();
+          });
         });
-      });
 
-      eventSource.onerror = () => {
-        eventSource.close();
-        reconnectAttempts.current++;
+        eventSource.onerror = () => {
+          eventSource?.close();
+          eventSource = null;
+          reconnectAttempts++;
 
-        if (reconnectAttempts.current <= maxReconnectAttempts) {
-          // Reconnect with exponential backoff
-          const delay = Math.min(1000 * Math.pow(2, reconnectAttempts.current), 30000);
-          setTimeout(() => connect(), delay);
-        } else {
-          // Fall back to polling
-          console.warn('[SSE] Max reconnect attempts reached, falling back to polling');
-          fallbackInterval = setInterval(() => onEventRef.current(), fallbackIntervalMs);
-        }
-      };
-    } catch {
-      // EventSource not supported or blocked — use polling
-      fallbackInterval = setInterval(() => onEventRef.current(), fallbackIntervalMs);
-    }
+          if (reconnectAttempts <= maxReconnectAttempts) {
+            const delay = Math.min(1000 * Math.pow(2, reconnectAttempts), 30000);
+            reconnectTimer = setTimeout(connect, delay);
+          } else {
+            console.warn('[SSE] Max reconnect attempts reached, falling back to polling');
+            startFallbackPolling();
+          }
+        };
+      } catch {
+        startFallbackPolling();
+      }
+    };
+
+    connect();
 
     return () => {
-      if (eventSource) eventSource.close();
+      disposed = true;
+      eventSource?.close();
       if (fallbackInterval) clearInterval(fallbackInterval);
+      if (reconnectTimer) clearTimeout(reconnectTimer);
     };
   }, [fallbackIntervalMs]);
-
-  useEffect(() => {
-    const cleanup = connect();
-    return () => { if (cleanup) cleanup(); };
-  }, [connect]);
 }

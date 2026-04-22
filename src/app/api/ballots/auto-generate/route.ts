@@ -105,8 +105,8 @@ async function handlePost(req: NextRequest, user: AuthUser) {
   }
 
   const preVoteSummary: PreVoteEntry[] = [];
-  let preVotedAgendaIds = new Set<string>();
-  let preVotedSubAgendaKeys = new Set<string>(); // "agendaId:subAgendaId"
+  const preVotedAgendaIds = new Set<string>();
+  const preVotedSubAgendaKeys = new Set<string>(); // "agendaId:subAgendaId"
   // Map registration proxyType ('B'/'C') to proxy table format ('FORM_B'/'FORM_C')
   const proxyTypeForDB = proxyType ? `FORM_${proxyType}` : undefined;
 
