@@ -2,15 +2,12 @@ import { NextRequest } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { jwtVerify } from 'jose';
 import * as XLSX from 'xlsx';
+import { getJwtSecret } from '@/lib/auth';
 
 // Allow large Excel files (up to 20MB)
 export const maxDuration = 300; // 5 minutes max
 
 const BATCH_SIZE = 500;
-
-const JWT_SECRET = new TextEncoder().encode(
-  process.env.AUTH_SECRET || 'fallback-secret-change-me'
-);
 
 // Column mapping (support Thai and English headers)
 const columnMap: Record<string, string[]> = {
@@ -84,8 +81,9 @@ export async function POST(req: NextRequest) {
 
   let userId: string;
   let username: string;
+  let userCompanyId: string | undefined;
   try {
-    const { payload } = await jwtVerify(token, JWT_SECRET);
+    const { payload } = await jwtVerify(token, getJwtSecret());
     const role = payload.role as string;
     if (!['SUPER_ADMIN', 'SYSTEM_ADMIN'].includes(role)) {
       return new Response(JSON.stringify({ error: 'Forbidden' }), {
@@ -93,8 +91,9 @@ export async function POST(req: NextRequest) {
         headers: { 'Content-Type': 'application/json' },
       });
     }
-    userId = payload.sub as string;
+    userId = payload.userId as string;
     username = payload.username as string;
+    userCompanyId = payload.companyId as string | undefined;
   } catch {
     return new Response(JSON.stringify({ error: 'Invalid token' }), {
       status: 401,
@@ -107,6 +106,12 @@ export async function POST(req: NextRequest) {
   if (!activeEvent) {
     return new Response(JSON.stringify({ error: 'ไม่มีงานประชุมที่ Active' }), {
       status: 400,
+      headers: { 'Content-Type': 'application/json' },
+    });
+  }
+  if (userCompanyId && userCompanyId !== activeEvent.companyId) {
+    return new Response(JSON.stringify({ error: 'ไม่มีสิทธิ์เข้าถึงงานประชุมนี้' }), {
+      status: 403,
       headers: { 'Content-Type': 'application/json' },
     });
   }

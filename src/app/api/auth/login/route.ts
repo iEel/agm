@@ -3,10 +3,7 @@ import { prisma } from '@/lib/prisma';
 import bcrypt from 'bcryptjs';
 import { SignJWT } from 'jose';
 import { cookies } from 'next/headers';
-
-const JWT_SECRET = new TextEncoder().encode(
-  process.env.AUTH_SECRET || 'fallback-secret-change-me'
-);
+import { getJwtSecret } from '@/lib/auth';
 
 export async function POST(request: NextRequest) {
   try {
@@ -51,7 +48,7 @@ export async function POST(request: NextRequest) {
       .setProtectedHeader({ alg: 'HS256' })
       .setIssuedAt()
       .setExpirationTime(process.env.JWT_EXPIRES_IN || '8h')
-      .sign(JWT_SECRET);
+      .sign(getJwtSecret());
 
     // Set cookie
     const cookieStore = await cookies();

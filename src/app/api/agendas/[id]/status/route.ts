@@ -14,6 +14,17 @@ async function handlePut(req: NextRequest, user: AuthUser) {
     return NextResponse.json({ error: 'ไม่พบวาระ' }, { status: 404 });
   }
 
+  const activeEvent = await prisma.event.findFirst({ where: { isActive: true } });
+  if (!activeEvent) {
+    return NextResponse.json({ error: 'ไม่มี Active Event' }, { status: 400 });
+  }
+  if (user.companyId && user.companyId !== activeEvent.companyId) {
+    return NextResponse.json({ error: 'ไม่มีสิทธิ์เข้าถึงงานประชุมนี้' }, { status: 403 });
+  }
+  if (agenda.meetingId !== activeEvent.id || agenda.companyId !== activeEvent.companyId) {
+    return NextResponse.json({ error: 'วาระไม่ตรงกับงานประชุมที่ Active' }, { status: 403 });
+  }
+
   // Validate transitions
   const validTransitions: Record<string, string[]> = {
     PENDING: ['OPEN'],
@@ -28,16 +39,27 @@ async function handlePut(req: NextRequest, user: AuthUser) {
     );
   }
 
+  let updated;
+
   // If closing vote, create snapshot
   if (status === 'CLOSED') {
-    const activeEvent = await prisma.event.findFirst({ where: { isActive: true } });
-    if (!activeEvent) {
-      return NextResponse.json({ error: 'ไม่มี Active Event' }, { status: 400 });
-    }
+    updated = await prisma.$transaction(async (tx) => {
+      const statusUpdate = await tx.agenda.updateMany({
+        where: {
+          id: agendaId,
+          meetingId: activeEvent.id,
+          status: agenda.status,
+        },
+        data: { status },
+      });
+
+      if (statusUpdate.count !== 1) {
+        throw new Error('Agenda status changed while closing vote');
+      }
 
     // ─── FR4.3: Merge Pre-votes from Proxy Form B/C ───
     // Auto-merge split votes from proxy that haven't been voted yet
-    const proxySplitVotes = await prisma.proxySplitVote.findMany({
+    const proxySplitVotes = await tx.proxySplitVote.findMany({
       where: {
         agendaId,
         proxy: {
@@ -56,7 +78,7 @@ async function handlePut(req: NextRequest, user: AuthUser) {
 
     for (const sv of proxySplitVotes) {
       // Check if this shareholder already voted on this agenda (manual vote overrides pre-vote)
-      const existingVote = await prisma.vote.findFirst({
+      const existingVote = await tx.vote.findFirst({
         where: {
           agendaId,
           shareholderId: sv.proxy.shareholderId,
@@ -65,7 +87,7 @@ async function handlePut(req: NextRequest, user: AuthUser) {
       });
 
       if (!existingVote) {
-        await prisma.vote.create({
+        await tx.vote.create({
           data: {
             companyId: activeEvent.companyId,
             meetingId: activeEvent.id,
@@ -82,7 +104,7 @@ async function handlePut(req: NextRequest, user: AuthUser) {
     }
 
     // ─── Count current attendees (not checked out) ───
-    const attendeeData = await prisma.registration.aggregate({
+    const attendeeData = await tx.registration.aggregate({
       where: { meetingId: activeEvent.id, checkoutAt: null },
       _count: true,
       _sum: { shares: true },
@@ -94,7 +116,7 @@ async function handlePut(req: NextRequest, user: AuthUser) {
       try {
         const vetoIds: string[] = JSON.parse(agenda.vetoShareholderIds);
         if (vetoIds.length > 0) {
-          const vetoShareholders = await prisma.shareholder.findMany({
+          const vetoShareholders = await tx.shareholder.findMany({
             where: { id: { in: vetoIds }, meetingId: activeEvent.id },
             select: { shares: true },
           });
@@ -108,7 +130,7 @@ async function handlePut(req: NextRequest, user: AuthUser) {
     }
 
     // ─── Aggregate ALL votes (including merged pre-votes) ───
-    const votes = await prisma.vote.findMany({
+    const votes = await tx.vote.findMany({
       where: { agendaId, meetingId: activeEvent.id },
     });
 
@@ -200,7 +222,7 @@ async function handlePut(req: NextRequest, user: AuthUser) {
     }
 
     // ─── Create or update snapshot (FR9.1: Data Snapshot) ───
-    await prisma.voteSnapshot.upsert({
+    await tx.voteSnapshot.upsert({
       where: { agendaId },
       create: {
         agendaId,
@@ -241,13 +263,21 @@ async function handlePut(req: NextRequest, user: AuthUser) {
         }),
       },
     });
+
+      const closedAgenda = await tx.agenda.findUniqueOrThrow({
+        where: { id: agendaId },
+      });
+      return closedAgenda;
+    });
   }
 
   // Update agenda status
-  const updated = await prisma.agenda.update({
-    where: { id: agendaId },
-    data: { status },
-  });
+  if (!updated) {
+    updated = await prisma.agenda.update({
+      where: { id: agendaId },
+      data: { status },
+    });
+  }
 
   // Audit log
   await prisma.auditLog.create({

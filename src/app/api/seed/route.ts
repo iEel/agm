@@ -5,6 +5,13 @@ import bcrypt from 'bcryptjs';
 // POST /api/seed — One-time seed for Super Admin + Demo data
 // ใช้ครั้งเดียวตอนเริ่มระบบ
 export async function POST() {
+  if (
+    process.env.NODE_ENV === 'production' ||
+    process.env.ENABLE_SEED_ENDPOINT !== 'true'
+  ) {
+    return NextResponse.json({ error: 'Seed endpoint is disabled' }, { status: 404 });
+  }
+
   try {
     const results: string[] = [];
 

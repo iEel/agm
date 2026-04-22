@@ -9,6 +9,9 @@ async function handleGet(req: NextRequest, user: AuthUser) {
   if (!activeEvent) {
     return NextResponse.json({ error: 'ไม่มีงานประชุมที่ Active' }, { status: 400 });
   }
+  if (user.companyId && user.companyId !== activeEvent.companyId) {
+    return NextResponse.json({ error: 'ไม่มีสิทธิ์เข้าถึงงานประชุมนี้' }, { status: 403 });
+  }
 
   const url = new URL(req.url);
   const agendaId = url.searchParams.get('agendaId');
@@ -79,6 +82,9 @@ async function handlePost(req: NextRequest, user: AuthUser) {
   if (!activeEvent) {
     return NextResponse.json({ error: 'ไม่มีงานประชุมที่ Active' }, { status: 400 });
   }
+  if (user.companyId && user.companyId !== activeEvent.companyId) {
+    return NextResponse.json({ error: 'ไม่มีสิทธิ์เข้าถึงงานประชุมนี้' }, { status: 403 });
+  }
 
   const { qrData, voteChoice, agendaId, shareholderId, subAgendaId } = await req.json();
 
@@ -135,9 +141,16 @@ async function handlePost(req: NextRequest, user: AuthUser) {
     return NextResponse.json({ error: 'ตัวเลือกไม่ถูกต้อง' }, { status: 400 });
   }
 
-  // Check agenda is OPEN
-  const agenda = await prisma.agenda.findUnique({ where: { id: resolvedAgendaId } });
-  if (!agenda || agenda.status !== 'OPEN') {
+  // Check agenda is OPEN and belongs to the active event.
+  const agenda = await prisma.agenda.findFirst({
+    where: {
+      id: resolvedAgendaId,
+      meetingId: activeEvent.id,
+      companyId: activeEvent.companyId,
+      status: 'OPEN',
+    },
+  });
+  if (!agenda) {
     return NextResponse.json({ error: 'วาระไม่ได้เปิดรับลงคะแนน' }, { status: 400 });
   }
 
@@ -154,11 +167,23 @@ async function handlePost(req: NextRequest, user: AuthUser) {
     return NextResponse.json({ error: 'ผู้ถือหุ้นนี้ลงคะแนนในวาระนี้แล้ว' }, { status: 409 });
   }
 
-  // Get shareholder's shares
-  const shareholder = await prisma.shareholder.findUnique({ where: { id: resolvedShareholderId } });
-  if (!shareholder) {
-    return NextResponse.json({ error: 'ไม่พบผู้ถือหุ้น' }, { status: 404 });
+  // Only checked-in shareholders in the active meeting are eligible to vote.
+  const registration = await prisma.registration.findFirst({
+    where: {
+      meetingId: activeEvent.id,
+      companyId: activeEvent.companyId,
+      shareholderId: resolvedShareholderId,
+      checkoutAt: null,
+    },
+    include: {
+      shareholder: true,
+    },
+  });
+  if (!registration) {
+    return NextResponse.json({ error: 'ผู้ถือหุ้นยังไม่ได้ลงทะเบียนหรือออกจากห้องประชุมแล้ว' }, { status: 403 });
   }
+
+  const shareholder = registration.shareholder;
 
   const vote = await prisma.vote.create({
     data: {
@@ -169,7 +194,7 @@ async function handlePost(req: NextRequest, user: AuthUser) {
       shareholderId: resolvedShareholderId,
       ballotId,
       voteChoice,
-      shares: shareholder.shares,
+      shares: registration.shares,
       scannedBy: user.username,
     },
   });

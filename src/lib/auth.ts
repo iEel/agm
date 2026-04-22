@@ -3,9 +3,13 @@ import { jwtVerify } from 'jose';
 import { cookies } from 'next/headers';
 import type { UserRole } from '@/types';
 
-const JWT_SECRET = new TextEncoder().encode(
-  process.env.AUTH_SECRET || 'fallback-secret-change-me'
-);
+export function getJwtSecret(): Uint8Array {
+  const secret = process.env.AUTH_SECRET;
+  if (!secret || secret === 'fallback-secret-change-me') {
+    throw new Error('AUTH_SECRET must be configured');
+  }
+  return new TextEncoder().encode(secret);
+}
 
 export interface AuthUser {
   userId: string;
@@ -25,7 +29,7 @@ export async function getAuthUser(): Promise<AuthUser | null> {
     const token = cookieStore.get('token');
     if (!token) return null;
 
-    const { payload } = await jwtVerify(token.value, JWT_SECRET);
+    const { payload } = await jwtVerify(token.value, getJwtSecret());
     return {
       userId: payload.userId as string,
       username: payload.username as string,

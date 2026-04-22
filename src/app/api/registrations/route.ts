@@ -9,6 +9,9 @@ async function handleGet(req: NextRequest, user: AuthUser) {
   if (!activeEvent) {
     return NextResponse.json({ error: 'ไม่มีงานประชุมที่ Active' }, { status: 400 });
   }
+  if (user.companyId && user.companyId !== activeEvent.companyId) {
+    return NextResponse.json({ error: 'ไม่มีสิทธิ์เข้าถึงงานประชุมนี้' }, { status: 403 });
+  }
 
   const url = new URL(req.url);
   const search = url.searchParams.get('search') || '';
@@ -88,6 +91,9 @@ async function handlePost(req: NextRequest, user: AuthUser) {
   if (!activeEvent) {
     return NextResponse.json({ error: 'ไม่มีงานประชุมที่ Active' }, { status: 400 });
   }
+  if (user.companyId && user.companyId !== activeEvent.companyId) {
+    return NextResponse.json({ error: 'ไม่มีสิทธิ์เข้าถึงงานประชุมนี้' }, { status: 403 });
+  }
 
   // Guard: only allow registration when event is in REGISTRATION or VOTING status
   if (!['REGISTRATION', 'VOTING'].includes(activeEvent.status)) {
@@ -100,8 +106,14 @@ async function handlePost(req: NextRequest, user: AuthUser) {
     return NextResponse.json({ error: 'กรุณาระบุ shareholderId' }, { status: 400 });
   }
 
-  // Check shareholder exists
-  const shareholder = await prisma.shareholder.findUnique({ where: { id: shareholderId } });
+  // Check shareholder exists in the active event.
+  const shareholder = await prisma.shareholder.findFirst({
+    where: {
+      id: shareholderId,
+      meetingId: activeEvent.id,
+      companyId: activeEvent.companyId,
+    },
+  });
   if (!shareholder) {
     return NextResponse.json({ error: 'ไม่พบผู้ถือหุ้น' }, { status: 404 });
   }

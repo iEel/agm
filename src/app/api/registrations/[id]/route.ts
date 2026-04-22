@@ -9,9 +9,20 @@ async function handlePut(req: NextRequest, user: AuthUser) {
   const id = req.nextUrl.pathname.split('/').pop()!;
   const { action } = await req.json();
 
+  const activeEvent = await prisma.event.findFirst({ where: { isActive: true } });
+  if (!activeEvent) {
+    return NextResponse.json({ error: 'ไม่มีงานประชุมที่ Active' }, { status: 400 });
+  }
+  if (user.companyId && user.companyId !== activeEvent.companyId) {
+    return NextResponse.json({ error: 'ไม่มีสิทธิ์เข้าถึงงานประชุมนี้' }, { status: 403 });
+  }
+
   const existing = await prisma.registration.findUnique({ where: { id } });
   if (!existing) {
     return NextResponse.json({ error: 'ไม่พบข้อมูลการลงทะเบียน' }, { status: 404 });
+  }
+  if (existing.meetingId !== activeEvent.id || existing.companyId !== activeEvent.companyId) {
+    return NextResponse.json({ error: 'ข้อมูลการลงทะเบียนไม่ตรงกับงานประชุมที่ Active' }, { status: 403 });
   }
 
   if (action === 'checkout') {
@@ -88,9 +99,20 @@ async function handlePut(req: NextRequest, user: AuthUser) {
 async function handleDelete(req: NextRequest, user: AuthUser) {
   const id = req.nextUrl.pathname.split('/').pop()!;
 
+  const activeEvent = await prisma.event.findFirst({ where: { isActive: true } });
+  if (!activeEvent) {
+    return NextResponse.json({ error: 'ไม่มีงานประชุมที่ Active' }, { status: 400 });
+  }
+  if (user.companyId && user.companyId !== activeEvent.companyId) {
+    return NextResponse.json({ error: 'ไม่มีสิทธิ์เข้าถึงงานประชุมนี้' }, { status: 403 });
+  }
+
   const existing = await prisma.registration.findUnique({ where: { id } });
   if (!existing) {
     return NextResponse.json({ error: 'ไม่พบข้อมูล' }, { status: 404 });
+  }
+  if (existing.meetingId !== activeEvent.id || existing.companyId !== activeEvent.companyId) {
+    return NextResponse.json({ error: 'ข้อมูลการลงทะเบียนไม่ตรงกับงานประชุมที่ Active' }, { status: 403 });
   }
 
   const shareholder = await prisma.shareholder.findUnique({

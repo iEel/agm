@@ -1,9 +1,13 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { jwtVerify } from 'jose';
 
-const JWT_SECRET = new TextEncoder().encode(
-  process.env.AUTH_SECRET || 'fallback-secret-change-me'
-);
+function getJwtSecret(): Uint8Array {
+  const secret = process.env.AUTH_SECRET;
+  if (!secret || secret === 'fallback-secret-change-me') {
+    throw new Error('AUTH_SECRET must be configured');
+  }
+  return new TextEncoder().encode(secret);
+}
 
 // Paths that don't require authentication
 const publicPaths = ['/login', '/api/auth/login', '/quorum-display', '/vote-results'];
@@ -45,7 +49,7 @@ export async function middleware(request: NextRequest) {
   }
 
   try {
-    const { payload } = await jwtVerify(token.value, JWT_SECRET);
+    const { payload } = await jwtVerify(token.value, getJwtSecret());
     const userRole = payload.role as string;
 
     // Check role-based access

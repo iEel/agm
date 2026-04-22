@@ -2,10 +2,7 @@ import { NextResponse } from 'next/server';
 import { cookies } from 'next/headers';
 import { jwtVerify } from 'jose';
 import { prisma } from '@/lib/prisma';
-
-const JWT_SECRET = new TextEncoder().encode(
-  process.env.AUTH_SECRET || 'fallback-secret-change-me'
-);
+import { getJwtSecret } from '@/lib/auth';
 
 export async function GET() {
   try {
@@ -16,11 +13,16 @@ export async function GET() {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const { payload } = await jwtVerify(token.value, JWT_SECRET);
+    const { payload } = await jwtVerify(token.value, getJwtSecret());
+
+    const companyId = payload.companyId as string | undefined;
 
     // Get active event info
     const activeEvent = await prisma.event.findFirst({
-      where: { isActive: true },
+      where: {
+        isActive: true,
+        ...(companyId ? { companyId } : {}),
+      },
       include: {
         company: {
           select: { name: true, nameTh: true, logoUrl: true },
