@@ -24,6 +24,11 @@ interface Agenda {
   titleTh: string;
   resolutionType: string;
   status: string;
+  subAgendas?: {
+    id: string;
+    orderNo: number;
+    titleTh: string;
+  }[];
 }
 
 interface VoteSummary {
@@ -44,6 +49,7 @@ export default function TallyingPage() {
   const { activeEvent } = useSession();
   const [agendas, setAgendas] = useState<Agenda[]>([]);
   const [selectedAgenda, setSelectedAgenda] = useState<string>('');
+  const [selectedSubAgenda, setSelectedSubAgenda] = useState<string>('');
   const [loading, setLoading] = useState(true);
   const [qrInput, setQrInput] = useState('');
   const [voteSummary, setVoteSummary] = useState<VoteSummary | null>(null);
@@ -68,15 +74,33 @@ export default function TallyingPage() {
   const fetchVoteSummary = useCallback(async () => {
     if (!selectedAgenda) return;
     try {
-      const res = await fetch(`/api/votes?agendaId=${selectedAgenda}`);
+      const params = new URLSearchParams({ agendaId: selectedAgenda });
+      if (selectedSubAgenda) params.set('subAgendaId', selectedSubAgenda);
+      const res = await fetch(`/api/votes?${params.toString()}`);
       if (!res.ok) return;
       const data = await res.json();
       setVoteSummary(data.summary);
     } catch { /* ignore */ }
-  }, [selectedAgenda]);
+  }, [selectedAgenda, selectedSubAgenda]);
 
   useEffect(() => { fetchAgendas(); }, [fetchAgendas]);
   useEffect(() => { fetchVoteSummary(); }, [fetchVoteSummary]);
+
+  useEffect(() => {
+    const agenda = agendas.find((a) => a.id === selectedAgenda);
+    if (!agenda || agenda.resolutionType !== 'ELECTION') {
+      setSelectedSubAgenda('');
+      return;
+    }
+
+    const firstSubAgenda = agenda.subAgendas?.[0];
+    setSelectedSubAgenda((current) => {
+      if (current && agenda.subAgendas?.some((sub) => sub.id === current)) {
+        return current;
+      }
+      return firstSubAgenda?.id || '';
+    });
+  }, [agendas, selectedAgenda]);
 
   // SSE real-time updates (falls back to polling every 5s)
   useSSE(fetchVoteSummary, 5000);
@@ -135,13 +159,21 @@ export default function TallyingPage() {
 
   const handleVoteByQR = async (voteChoice: string) => {
     if (!qrInput.trim() || !selectedAgenda) return;
+    if (currentAgenda?.resolutionType === 'ELECTION' && !selectedSubAgenda) {
+      setLastResult({ type: 'error', text: 'กรุณาเลือกรายชื่อกรรมการก่อนลงคะแนน' });
+      return;
+    }
     setLastResult(null);
 
     try {
       const res = await fetch('/api/votes', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ qrData: qrInput.trim(), voteChoice }),
+        body: JSON.stringify({
+          qrData: qrInput.trim(),
+          voteChoice,
+          subAgendaId: selectedSubAgenda || null,
+        }),
       });
       const data = await res.json();
 
@@ -201,10 +233,33 @@ export default function TallyingPage() {
             </option>
           ))}
         </select>
+        {currentAgenda?.resolutionType === 'ELECTION' && (
+          <div className="mt-3">
+            <label className="block text-sm font-semibold text-text-secondary mb-2">เลือกรายชื่อกรรมการ</label>
+            <select
+              value={selectedSubAgenda}
+              onChange={(e) => setSelectedSubAgenda(e.target.value)}
+              className="input-field text-base"
+            >
+              <option value="">-- เลือกรายชื่อกรรมการ --</option>
+              {currentAgenda.subAgendas?.map((sub) => (
+                <option key={sub.id} value={sub.id}>
+                  {currentAgenda.orderNo}.{sub.orderNo} {sub.titleTh}
+                </option>
+              ))}
+            </select>
+          </div>
+        )}
         {currentAgenda && currentAgenda.status !== 'OPEN' && (
           <p className="mt-2 text-sm text-amber-400 flex items-center gap-1">
             <AlertCircle className="w-4 h-4" />
             วาระนี้สถานะ &quot;{currentAgenda.status}&quot; — ต้องเปลี่ยนเป็น &quot;OPEN&quot; ก่อนลงคะแนน
+          </p>
+        )}
+        {currentAgenda?.resolutionType === 'ELECTION' && !selectedSubAgenda && (
+          <p className="mt-2 text-sm text-amber-400 flex items-center gap-1">
+            <AlertCircle className="w-4 h-4" />
+            วาระเลือกตั้งกรรมการต้องเลือกรายชื่อกรรมการก่อนลงคะแนน
           </p>
         )}
       </div>

@@ -15,13 +15,18 @@ async function handleGet(req: NextRequest, user: AuthUser) {
 
   const url = new URL(req.url);
   const agendaId = url.searchParams.get('agendaId');
+  const subAgendaId = url.searchParams.get('subAgendaId');
 
   if (!agendaId) {
     return NextResponse.json({ error: 'กรุณาระบุ agendaId' }, { status: 400 });
   }
 
   const votes = await prisma.vote.findMany({
-    where: { meetingId: activeEvent.id, agendaId },
+    where: {
+      meetingId: activeEvent.id,
+      agendaId,
+      ...(subAgendaId ? { subAgendaId } : { subAgendaId: null }),
+    },
     include: {
       shareholder: {
         select: {
@@ -152,6 +157,23 @@ async function handlePost(req: NextRequest, user: AuthUser) {
   });
   if (!agenda) {
     return NextResponse.json({ error: 'วาระไม่ได้เปิดรับลงคะแนน' }, { status: 400 });
+  }
+
+  if (agenda.resolutionType === 'ELECTION') {
+    if (!subAgendaId) {
+      return NextResponse.json({ error: 'วาระเลือกตั้งกรรมการต้องระบุรายชื่อกรรมการ' }, { status: 400 });
+    }
+
+    const subAgenda = await prisma.subAgenda.findFirst({
+      where: {
+        id: subAgendaId,
+        agendaId: agenda.id,
+      },
+    });
+
+    if (!subAgenda) {
+      return NextResponse.json({ error: 'ไม่พบรายชื่อกรรมการในวาระนี้' }, { status: 404 });
+    }
   }
 
   // Check duplicate vote
